@@ -13,7 +13,7 @@ import {
   type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -113,61 +113,82 @@ export function Board({ projectId, onSelectTask }: BoardProps) {
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
-    const snapshot = snapshotRef.current;
+    const snapshot =
+      snapshotRef.current ?? queryClient.getQueryData<Task[]>(taskKeys.byProject(projectId)) ?? [];
     setActiveId(null);
     snapshotRef.current = undefined;
 
     if (!over) {
-      if (snapshot) queryClient.setQueryData(taskKeys.byProject(projectId), snapshot);
+      queryClient.setQueryData(taskKeys.byProject(projectId), snapshot);
       return;
     }
 
     const activeIdStr = String(active.id);
     const overIdStr = String(over.id);
-    const cache = queryClient.getQueryData<Task[]>(taskKeys.byProject(projectId)) ?? [];
-    const dragged = cache.find((t) => t.id === activeIdStr);
-    if (!dragged) return;
-
-    const targetStatus = resolveTargetStatus(overIdStr, cache);
-    if (!targetStatus) {
-      if (snapshot) queryClient.setQueryData(taskKeys.byProject(projectId), snapshot);
+    const dragged = snapshot.find((t) => t.id === activeIdStr);
+    if (!dragged) {
+      queryClient.setQueryData(taskKeys.byProject(projectId), snapshot);
       return;
     }
 
-    const targetCol = sortedColumn(cache, targetStatus, activeIdStr);
-    const targetIndex = indexInColumn(targetCol, overIdStr) ?? targetCol.length;
-    const finalTargetCol = [...targetCol];
-    finalTargetCol.splice(targetIndex, 0, { ...dragged, status: targetStatus });
-
-    const sourceOriginalStatus =
-      snapshot?.find((t) => t.id === activeIdStr)?.status ?? dragged.status;
-
-    const updates: ReorderTaskUpdate[] = finalTargetCol.map((t, i) => ({
-      id: t.id,
-      status: targetStatus,
-      order: i,
-    }));
-
-    if (sourceOriginalStatus !== targetStatus && snapshot) {
-      const sourceCol = sortedColumn(snapshot, sourceOriginalStatus, activeIdStr);
-      updates.push(
-        ...sourceCol.map((t, i) => ({ id: t.id, status: sourceOriginalStatus, order: i }))
-      );
+    const targetStatus = resolveTargetStatus(overIdStr, snapshot);
+    if (!targetStatus) {
+      queryClient.setQueryData(taskKeys.byProject(projectId), snapshot);
+      return;
     }
 
-    // Commit the final layout to the cache before mutating so the visible
-    // order matches what we're persisting (handles intra-column reorders that
-    // onDragOver intentionally skipped).
-    const finalCache = applyUpdatesToCache(cache, updates);
-    queryClient.setQueryData(taskKeys.byProject(projectId), finalCache);
+    const sourceStatus = dragged.status;
+    let updates: ReorderTaskUpdate[];
 
-    if (isNoopAgainst(snapshot ?? cache, updates)) return;
+    if (sourceStatus === targetStatus) {
+      // Intra-column: arrayMove handles both forward and backward swaps; using
+      // sortedColumn(...).splice would silently no-op when dragging down by 1.
+      const col = sortedColumn(snapshot, sourceStatus);
+      const oldIndex = col.findIndex((t) => t.id === activeIdStr);
+      const newIndex = isColumnDropId(overIdStr)
+        ? col.length - 1
+        : col.findIndex((t) => t.id === overIdStr);
+      if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) {
+        queryClient.setQueryData(taskKeys.byProject(projectId), snapshot);
+        return;
+      }
+      updates = arrayMove(col, oldIndex, newIndex).map((t, i) => ({
+        id: t.id,
+        status: sourceStatus,
+        order: i,
+      }));
+    } else {
+      // Cross-column: drop active into target at over's position, then
+      // renumber both columns so the source has no gap.
+      const sourceCol = sortedColumn(snapshot, sourceStatus, activeIdStr);
+      const targetCol = sortedColumn(snapshot, targetStatus);
+      const targetIndex = isColumnDropId(overIdStr)
+        ? targetCol.length
+        : (indexInColumn(targetCol, overIdStr) ?? targetCol.length);
+
+      const newTargetCol = [...targetCol];
+      newTargetCol.splice(targetIndex, 0, { ...dragged, status: targetStatus });
+
+      updates = [
+        ...newTargetCol.map((t, i) => ({ id: t.id, status: targetStatus, order: i })),
+        ...sourceCol.map((t, i) => ({ id: t.id, status: sourceStatus, order: i })),
+      ];
+    }
+
+    if (isNoopAgainst(snapshot, updates)) {
+      queryClient.setQueryData(taskKeys.byProject(projectId), snapshot);
+      return;
+    }
+
+    // Apply the final layout before the mutation runs so the visible state
+    // matches what we're persisting (the onDragOver cache may have diverged).
+    queryClient.setQueryData(taskKeys.byProject(projectId), applyUpdatesToCache(snapshot, updates));
 
     reorderTasks.mutate(
       { projectId, updates },
       {
         onError: (err) => {
-          if (snapshot) queryClient.setQueryData(taskKeys.byProject(projectId), snapshot);
+          queryClient.setQueryData(taskKeys.byProject(projectId), snapshot);
           toast.error("Couldn't save the reorder", { description: err.message });
         },
       }

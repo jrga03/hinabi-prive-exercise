@@ -80,4 +80,21 @@ function handleDelete(_project: Project) {
 
 ---
 
-(Add more entries as the build progresses.)
+## 2026-05-31 - dnd-kit handleDragEnd silently no-op'd intra-column drag-by-one
+
+**Tool:** Claude Code (terminal CLI)
+**Model:** Opus 4.7
+**Task:** Implement the Kanban board's `handleDragEnd` in `src/components/kanban/board.tsx` (Task 14 / §14.7) so dragging a task within a column reorders it.
+**Prompt:** Internal — Task 14 implementation per the §14.7 spec, "build updates array from over.id position."
+**Generated output:**
+
+```ts
+const targetCol = sortedColumn(cache, targetStatus, activeIdStr); // EXCLUDES active
+const targetIndex = indexInColumn(targetCol, overIdStr) ?? targetCol.length;
+const finalTargetCol = [...targetCol];
+finalTargetCol.splice(targetIndex, 0, { ...dragged, status: targetStatus });
+```
+
+**Bug:** For intra-column drags (same source + target column), excluding the active task from the column before computing the over.id's index means: if the user drags task[0] down by one slot to land on task[1]'s position, `targetCol` (without active) is `[task[1], task[2]]`, so `indexInColumn(targetCol, task[1].id) === 0`. Splicing active at index 0 produces `[active, task[1], task[2]]` — i.e., the original order. The drag visually moved the card but the commit was a no-op. Only multi-position drags (over.id past task[1]) showed any change. Type-check passed; the bug only surfaced with manual drag interaction.
+**Fix:** Special-case intra-column moves in `handleDragEnd` to use `arrayMove(col, oldIndex, newIndex)` from `@dnd-kit/sortable` over the **full** column (including active), with both indices computed from the same array. `arrayMove` handles both forward and backward swaps correctly. Cross-column logic was unchanged. Also switched the source-of-truth from the (potentially-mutated-by-onDragOver) cache to the pre-drag snapshot, so the final commit is computed deterministically regardless of onDragOver interim state.
+**Lesson:** Whenever the dnd-kit handler computes index-based reorder, **either include the active item in the array on both sides of the index lookup, or use `arrayMove`/`arrayInsertAt`.** Mixing "exclude active" + "look up over.id index" only works for cross-column moves; for intra-column it silently no-ops the single-position swap, which is the most common drag the user will actually try. Verifying with `npm run typecheck && npm run lint` is not enough for dnd-kit — every reorder direction needs a manual drag test.
