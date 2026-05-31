@@ -9,7 +9,7 @@ export function AppHeader({ slot }: { slot?: ReactNode }) {
       <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-4 px-4 sm:px-6 lg:px-8">
         <Link
           href="/"
-          className="focus-visible:ring-ring/50 focus-visible:ring-offset-background -m-1 inline-flex items-center gap-2 rounded-md p-1 font-semibold tracking-tight outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+          className="focus-visible:ring-ring/50 focus-visible:ring-offset-background -m-1 inline-flex items-center gap-2 rounded-md p-1 font-semibold tracking-tight outline-none focus-visible:ring-2 focus-visible:ring-offset-2 max-sm:min-h-11"
         >
           <span aria-hidden className="bg-primary inline-block size-6 rounded-md" />
           <span className="text-sm">TIO</span>

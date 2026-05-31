@@ -195,7 +195,7 @@ function BackToProjects() {
   return (
     <Link
       href="/"
-      className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 focus-visible:ring-offset-background -ml-1 inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+      className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 focus-visible:ring-offset-background -ml-1 inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-offset-2 max-sm:min-h-11"
     >
       <ChevronLeft className="size-4" aria-hidden />
       Projects

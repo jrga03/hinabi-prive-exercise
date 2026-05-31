@@ -242,7 +242,7 @@ function TaskDetailBody({ task, allTasks, projectId, onClose, onSelectTask }: Ta
           <button
             type="button"
             onClick={() => onSelectTask(parentTask.id)}
-            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 flex w-full items-start gap-2 rounded-md px-1 py-1 text-left text-xs transition-colors outline-none focus-visible:ring-2"
+            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 flex w-full items-start gap-2 rounded-md px-1 py-1 text-left text-xs transition-colors outline-none focus-visible:ring-2 max-sm:min-h-11 max-sm:py-2"
           >
             <CornerUpLeft className="mt-px size-3.5 shrink-0" aria-hidden />
             <span className="min-w-0">
@@ -455,7 +455,7 @@ function SubtaskSection({ parentTask, subtasks, projectId, onSelectTask }: Subta
         <button
           type="button"
           onClick={() => setAdding(true)}
-          className="border-border/70 text-muted-foreground/90 hover:border-foreground/30 hover:bg-muted hover:text-foreground focus-visible:ring-ring/50 inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-md border border-dashed text-xs font-medium transition-colors outline-none focus-visible:ring-2"
+          className="border-border/70 text-muted-foreground/90 hover:border-foreground/30 hover:bg-muted hover:text-foreground focus-visible:ring-ring/50 inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-md border border-dashed text-xs font-medium transition-colors outline-none focus-visible:ring-2 max-sm:h-11"
         >
           <Plus className="size-3.5" aria-hidden />
           Add sub-task
@@ -492,19 +492,22 @@ function SubtaskRow({ task, projectId, onOpen }: SubtaskRowProps) {
         onClick={toggleDone}
         aria-label={done ? "Mark as not done" : "Mark as done"}
         aria-pressed={done}
-        className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 inline-flex size-5 shrink-0 items-center justify-center rounded-full outline-none focus-visible:ring-2"
+        className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 inline-flex size-5 shrink-0 items-center justify-center rounded-full outline-none focus-visible:ring-2 max-sm:size-11"
       >
         {done ? (
-          <CircleCheckBig className="size-4 text-emerald-600 dark:text-emerald-400" aria-hidden />
+          <CircleCheckBig
+            className="size-4 text-emerald-600 max-sm:size-5 dark:text-emerald-400"
+            aria-hidden
+          />
         ) : (
-          <Circle className="size-4" aria-hidden />
+          <Circle className="size-4 max-sm:size-5" aria-hidden />
         )}
       </button>
       <button
         type="button"
         onClick={() => onOpen(task.id)}
         className={cn(
-          "text-foreground focus-visible:ring-ring/50 min-w-0 flex-1 truncate rounded-sm text-left text-sm outline-none focus-visible:ring-2",
+          "text-foreground focus-visible:ring-ring/50 min-w-0 flex-1 truncate rounded-sm text-left text-sm outline-none focus-visible:ring-2 max-sm:min-h-11 max-sm:py-2",
           done && "text-muted-foreground line-through"
         )}
       >
