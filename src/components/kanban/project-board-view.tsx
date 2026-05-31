@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { AppHeader } from "@/components/layout/app-header";
 import { MagicGenerateButton } from "@/components/ai/magic-generate-button";
 import { Board, BoardColumnsSkeleton } from "@/components/kanban/board";
+import { TaskDetailPanel } from "@/components/kanban/task-detail-panel";
 import { ProjectDialog } from "@/components/projects/project-dialog";
 import {
   AlertDialog,
@@ -42,6 +43,7 @@ export function ProjectBoardView({ projectId }: ProjectBoardViewProps) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   if (project.isPending) {
     return <BoardLoading />;
@@ -145,7 +147,16 @@ export function ProjectBoardView({ projectId }: ProjectBoardViewProps) {
         </div>
       </div>
 
-      <Board projectId={current.id} />
+      <Board projectId={current.id} onSelectTask={(task) => setSelectedTaskId(task.id)} />
+
+      <TaskDetailPanel
+        taskId={selectedTaskId}
+        projectId={current.id}
+        onOpenChange={(open) => {
+          if (!open) setSelectedTaskId(null);
+        }}
+        onSelectTask={(taskId) => setSelectedTaskId(taskId)}
+      />
 
       <ProjectDialog
         open={editOpen}
