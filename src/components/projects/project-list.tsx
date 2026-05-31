@@ -5,13 +5,23 @@ import { LayoutDashboard, Plus } from "lucide-react"
 import { toast } from "sonner"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ProjectCard } from "@/components/projects/project-card"
 import { ProjectDialog } from "@/components/projects/project-dialog"
 import { useAllTasks } from "@/hooks/use-all-tasks"
-import { useProjects } from "@/hooks/use-projects"
+import { useDeleteProject, useProjects } from "@/hooks/use-projects"
 import type { Project } from "@/lib/types"
 
 type DialogState =
@@ -22,7 +32,9 @@ type DialogState =
 export function ProjectList() {
   const projects = useProjects()
   const tasks = useAllTasks()
+  const deleteProject = useDeleteProject()
   const [dialog, setDialog] = useState<DialogState>({ mode: "closed" })
+  const [pendingDelete, setPendingDelete] = useState<Project | null>(null)
 
   const taskCounts = useMemo(() => {
     const map = new Map<string, number>()
@@ -40,12 +52,23 @@ export function ProjectList() {
     setDialog({ mode: "edit", project })
   }
 
-  function handleDelete() {
-    toast.info("Delete confirmation wires up next")
+  function handleDelete(project: Project) {
+    setPendingDelete(project)
   }
 
   function handleDialogChange(open: boolean) {
     if (!open) setDialog({ mode: "closed" })
+  }
+
+  function confirmDelete() {
+    if (!pendingDelete) return
+    const target = pendingDelete
+    setPendingDelete(null)
+    deleteProject.mutate(target.id, {
+      onSuccess: () => toast.success(`Deleted “${target.title}”`),
+      onError: (err) =>
+        toast.error("Couldn't delete project", { description: err.message }),
+    })
   }
 
   return (
@@ -111,6 +134,34 @@ export function ProjectList() {
         mode={dialog.mode === "edit" ? "edit" : "create"}
         initialData={dialog.mode === "edit" ? dialog.project : undefined}
       />
+
+      <AlertDialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this project?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete
+                ? `“${pendingDelete.title}” and all of its tasks will be permanently removed. This can't be undone.`
+                : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={deleteProject.isPending}
+            >
+              {deleteProject.isPending ? "Deleting…" : "Delete project"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
