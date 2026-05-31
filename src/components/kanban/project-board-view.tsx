@@ -8,7 +8,8 @@ import { toast } from "sonner";
 
 import { AppHeader } from "@/components/layout/app-header";
 import { MagicGenerateButton } from "@/components/ai/magic-generate-button";
-import { Board, BoardColumnsSkeleton } from "@/components/kanban/board";
+import { Board } from "@/components/kanban/board";
+import { BoardColumnsSkeleton, BoardHeaderSkeleton } from "@/components/kanban/board-skeleton";
 import { TaskDetailPanel } from "@/components/kanban/task-detail-panel";
 import { ProjectDialog } from "@/components/projects/project-dialog";
 import {
@@ -222,17 +223,7 @@ function BoardShell({
 function BoardLoading() {
   return (
     <BoardShell breadcrumb={<Skeleton className="ml-1 h-4 w-16" aria-hidden="true" />}>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-2">
-          <Skeleton className="h-3 w-20" />
-          <Skeleton className="h-8 w-72" />
-          <Skeleton className="h-4 w-96 max-w-full" />
-        </div>
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-9 w-36" />
-          <Skeleton className="size-9" />
-        </div>
-      </div>
+      <BoardHeaderSkeleton />
       <BoardColumnsSkeleton />
     </BoardShell>
   );

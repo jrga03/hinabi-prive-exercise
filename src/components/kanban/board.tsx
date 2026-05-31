@@ -17,15 +17,16 @@ import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import { BoardColumnsSkeleton } from "@/components/kanban/board-skeleton";
 import { KanbanColumn, isColumnDropId, statusFromColumnDropId } from "@/components/kanban/column";
 import { TaskCardOverlay } from "@/components/kanban/task-card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { taskKeys, useReorderTasks, useTasks } from "@/hooks/use-tasks";
-import { COLUMN_META, COLUMN_ORDER } from "@/lib/constants";
+import { COLUMN_ORDER } from "@/lib/constants";
 import type { ReorderTaskUpdate, Task, TaskStatus } from "@/lib/types";
-import { cn } from "@/lib/utils";
+
+export { BoardColumnsSkeleton };
 
 interface BoardProps {
   projectId: string;
@@ -275,29 +276,4 @@ function groupByStatus(tasks: Task[]): Record<TaskStatus, Task[]> {
     grouped[status].sort((a, b) => a.order - b.order);
   }
   return grouped;
-}
-
-export function BoardColumnsSkeleton() {
-  return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-      {COLUMN_ORDER.map((status) => (
-        <section key={status} className="space-y-3">
-          <div className="flex items-center gap-2">
-            <span
-              aria-hidden
-              className={cn("inline-block size-2 rounded-full", COLUMN_META[status].accent)}
-            />
-            <h2 className="font-heading text-sm font-medium tracking-tight">
-              {COLUMN_META[status].label}
-            </h2>
-            <Skeleton className="h-4 w-6 rounded-full" />
-          </div>
-          <div className="space-y-3">
-            <Skeleton className="h-24 w-full rounded-lg" />
-            <Skeleton className="h-24 w-full rounded-lg" />
-          </div>
-        </section>
-      ))}
-    </div>
-  );
 }
