@@ -60,4 +60,24 @@ create(input: CreateProjectInput): Promise<Project> {
 
 ---
 
+## 2026-05-31 - Underscore-prefixed unused param still flagged by ESLint
+
+**Tool:** Claude Code (terminal CLI)
+**Model:** Opus 4.7
+**Task:** Stub a placeholder `handleDelete(project)` in `project-list.tsx` for Task 9 / 10 where the project arg would only be used once the dialog wired up later.
+**Prompt:** Internal — generating the intermediate ProjectList state for the "verify between Tasks 8/9 and 10/11" gate.
+**Generated output:**
+
+```tsx
+function handleDelete(_project: Project) {
+  toast.info("Delete confirmation wires up next")
+}
+```
+
+**Bug:** Underscore-prefixed `_project` was generated assuming ESLint's `no-unused-vars` would honor the leading underscore as an ignore signal. The project's `eslint.config.mjs` extends `eslint-config-next/typescript` without overriding `argsIgnorePattern`, so the default rule still flagged `_project` as unused. `npm run lint` reported the warning even though the prefix convention "looked right".
+**Fix:** Two options were viable: (a) drop the parameter entirely while it's unused, or (b) add `argsIgnorePattern: "^_"` to the eslint config. Picked (a) for this intermediate state since the param gets reintroduced (and used) in Task 11. If the prefix convention is going to be repeated, configure the rule once.
+**Lesson:** Don't assume `_foo` silences lint warnings — it's only a convention, and only works if the rule is configured for it. When generating stub code that will be filled in later, either (a) omit the param and add it back when used, or (b) check the linter's `no-unused-vars` config before relying on the underscore prefix.
+
+---
+
 (Add more entries as the build progresses.)
