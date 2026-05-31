@@ -32,4 +32,32 @@ Format per entry:
 
 ---
 
+## 2026-05-31 - Repository methods leaked sync ZodError, broke `.rejects` test matcher
+
+**Tool:** Claude Code (terminal CLI)
+**Model:** Opus 4.7
+**Task:** Implement `LocalStorageProjectRepository.create` so it returns `Promise<Project>` and the test `await expect(repo.create({ title: '' })).rejects.toBeInstanceOf(ZodError)` passes.
+**Prompt:** Internal — generating Task 6 per implementation plan §14.2 with the rule "Every method returns a Promise (use Promise.resolve), even though localStorage is synchronous."
+**Generated output:**
+
+```ts
+create(input: CreateProjectInput): Promise<Project> {
+  const now = nowIso()
+  const project: Project = ProjectSchema.parse({
+    ...input,
+    id: crypto.randomUUID(),
+    createdAt: now,
+    updatedAt: now,
+  })
+  // …
+  return Promise.resolve(project)
+}
+```
+
+**Bug:** `ProjectSchema.parse(...)` throws synchronously *before* `Promise.resolve(...)` runs, so the function throws synchronously rather than returning a rejected promise. The test sees an unhandled throw at `repo.create(...)` and the `.rejects` matcher never engages. 2 of 19 Vitest cases failed with the actual ZodError surfaced as a test runner error, not a rejection.
+**Fix:** Converted every repository method from `methodName(): Promise<X> { … return Promise.resolve(x) }` to `async methodName(): Promise<X> { … return x }`. Async functions auto-convert sync throws into rejected promises, so the failing tests passed without modification and the public contract is unchanged.
+**Lesson:** "Use Promise.resolve to keep the contract" is correct for value-returning paths but doesn't cover throw paths. Prefer `async` on every repository method — it's a one-keyword change that handles both. When the prompt says "must return a Promise," translate that to "must be an async function" unless there's a specific reason not to.
+
+---
+
 (Add more entries as the build progresses.)

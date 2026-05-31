@@ -89,16 +89,15 @@ function nowIso(): string {
 }
 
 export class LocalStorageProjectRepository implements ProjectRepository {
-  list(): Promise<Project[]> {
-    return Promise.resolve(readProjects())
+  async list(): Promise<Project[]> {
+    return readProjects()
   }
 
-  get(id: string): Promise<Project | null> {
-    const found = readProjects().find((p) => p.id === id) ?? null
-    return Promise.resolve(found)
+  async get(id: string): Promise<Project | null> {
+    return readProjects().find((p) => p.id === id) ?? null
   }
 
-  create(input: CreateProjectInput): Promise<Project> {
+  async create(input: CreateProjectInput): Promise<Project> {
     const now = nowIso()
     const project: Project = ProjectSchema.parse({
       ...input,
@@ -108,13 +107,13 @@ export class LocalStorageProjectRepository implements ProjectRepository {
     })
     const projects = readProjects()
     writeProjects([...projects, project])
-    return Promise.resolve(project)
+    return project
   }
 
-  update(id: string, patch: UpdateProjectInput): Promise<Project> {
+  async update(id: string, patch: UpdateProjectInput): Promise<Project> {
     const projects = readProjects()
     const idx = projects.findIndex((p) => p.id === id)
-    if (idx === -1) return Promise.reject(new NotFoundError('Project', id))
+    if (idx === -1) throw new NotFoundError('Project', id)
     const updated: Project = ProjectSchema.parse({
       ...projects[idx],
       ...patch,
@@ -123,10 +122,10 @@ export class LocalStorageProjectRepository implements ProjectRepository {
     const next = [...projects]
     next[idx] = updated
     writeProjects(next)
-    return Promise.resolve(updated)
+    return updated
   }
 
-  delete(id: string): Promise<void> {
+  async delete(id: string): Promise<void> {
     const projects = readProjects()
     const nextProjects = projects.filter((p) => p.id !== id)
     writeProjects(nextProjects)
@@ -135,7 +134,6 @@ export class LocalStorageProjectRepository implements ProjectRepository {
     if (nextTasks.length !== tasks.length) {
       writeTasks(nextTasks)
     }
-    return Promise.resolve()
   }
 }
 
@@ -174,17 +172,17 @@ function collectDescendantIds(rootId: string, tasks: Task[]): Set<string> {
 }
 
 export class LocalStorageTaskRepository implements TaskRepository {
-  listByProject(projectId: string): Promise<Task[]> {
-    const tasks = readTasks().filter((t) => t.projectId === projectId)
-    return Promise.resolve(tasks)
+  async listByProject(projectId: string): Promise<Task[]> {
+    return readTasks().filter((t) => t.projectId === projectId)
   }
 
-  create(input: CreateTaskInput): Promise<Task> {
-    return this.createMany([input]).then(([task]) => task)
+  async create(input: CreateTaskInput): Promise<Task> {
+    const [task] = await this.createMany([input])
+    return task
   }
 
-  createMany(inputs: CreateTaskInput[]): Promise<Task[]> {
-    if (inputs.length === 0) return Promise.resolve([])
+  async createMany(inputs: CreateTaskInput[]): Promise<Task[]> {
+    if (inputs.length === 0) return []
     const all = readTasks()
     const maxByColumn = new Map<string, number>()
     for (const t of all) {
@@ -205,22 +203,22 @@ export class LocalStorageTaskRepository implements TaskRepository {
       })
     })
     writeTasks([...all, ...created])
-    return Promise.resolve(created)
+    return created
   }
 
-  update(id: string, patch: UpdateTaskInput): Promise<Task> {
+  async update(id: string, patch: UpdateTaskInput): Promise<Task> {
     const tasks = readTasks()
     const idx = tasks.findIndex((t) => t.id === id)
-    if (idx === -1) return Promise.reject(new NotFoundError('Task', id))
+    if (idx === -1) throw new NotFoundError('Task', id)
     const updated = applyTaskPatch(tasks[idx], patch)
     const next = [...tasks]
     next[idx] = updated
     writeTasks(next)
-    return Promise.resolve(updated)
+    return updated
   }
 
-  reorder(updates: ReorderTaskUpdate[]): Promise<void> {
-    if (updates.length === 0) return Promise.resolve()
+  async reorder(updates: ReorderTaskUpdate[]): Promise<void> {
+    if (updates.length === 0) return
     const tasks = readTasks()
     const byId = new Map(updates.map((u) => [u.id, u]))
     const now = nowIso()
@@ -235,16 +233,14 @@ export class LocalStorageTaskRepository implements TaskRepository {
       })
     })
     writeTasks(next)
-    return Promise.resolve()
   }
 
-  delete(id: string): Promise<void> {
+  async delete(id: string): Promise<void> {
     const tasks = readTasks()
     const idsToDelete = collectDescendantIds(id, tasks)
     const next = tasks.filter((t) => !idsToDelete.has(t.id))
     if (next.length !== tasks.length) {
       writeTasks(next)
     }
-    return Promise.resolve()
   }
 }
