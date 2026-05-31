@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { AlertTriangle, RefreshCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,8 +17,17 @@ import {
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { GenerateTasksError, useMagicGenerate } from "@/hooks/use-magic-generate";
+import {
+  GenerateTasksError,
+  useMagicGenerate,
+  type PartialAITask,
+} from "@/hooks/use-magic-generate";
+import { CATEGORY_META } from "@/lib/categories";
+import type { TaskCategory } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import type { Project } from "@/lib/types";
+
+const PLACEHOLDER_COUNT = 5;
 
 interface GenerateDialogProps {
   open: boolean;
@@ -34,6 +44,38 @@ function friendlyMessage(error: unknown): string {
   }
   if (error instanceof Error) return error.message;
   return "Something went wrong.";
+}
+
+function isKnownCategory(value: unknown): value is Exclude<TaskCategory, null> {
+  return typeof value === "string" && value in CATEGORY_META;
+}
+
+function StreamingTaskRow({ task }: { task: PartialAITask | undefined }) {
+  const title = task?.title?.trim();
+  const category = isKnownCategory(task?.category) ? CATEGORY_META[task.category] : null;
+  const hasTitle = Boolean(title);
+
+  return (
+    <div
+      className={cn(
+        "ring-foreground/10 grid min-h-12 gap-2 rounded-md p-3 ring-1 transition-colors",
+        hasTitle ? "bg-card" : "bg-muted/40"
+      )}
+    >
+      {hasTitle ? (
+        <p className="line-clamp-2 text-sm leading-snug font-medium">{title}</p>
+      ) : (
+        <Skeleton className="h-4 w-2/3" />
+      )}
+      {category ? (
+        <Badge variant="outline" className={cn("w-fit border-transparent ring-1", category.badge)}>
+          {category.label}
+        </Badge>
+      ) : hasTitle ? null : (
+        <Skeleton className="h-4 w-16" />
+      )}
+    </div>
+  );
 }
 
 export function GenerateDialog({ open, onOpenChange, project }: GenerateDialogProps) {
@@ -73,8 +115,9 @@ export function GenerateDialog({ open, onOpenChange, project }: GenerateDialogPr
   }
 
   const showError = magic.isError && !magic.isPending;
-  const showSkeleton = magic.isPending;
-  const showForm = !showSkeleton && !showError;
+  const showStreaming = magic.isPending;
+  const showForm = !showStreaming && !showError;
+  const streamedCount = magic.partialTasks.filter((t) => t?.title?.trim()).length;
 
   return (
     <Dialog
@@ -106,12 +149,16 @@ export function GenerateDialog({ open, onOpenChange, project }: GenerateDialogPr
           </div>
         ) : null}
 
-        {showSkeleton ? (
+        {showStreaming ? (
           <div className="grid gap-3" aria-live="polite" aria-busy="true">
-            <p className="text-muted-foreground text-sm">Generating 5 tasks…</p>
+            <p className="text-muted-foreground text-sm">
+              {streamedCount === 0
+                ? "Generating 5 tasks…"
+                : `Streaming ${streamedCount} of ${PLACEHOLDER_COUNT}…`}
+            </p>
             <div className="grid gap-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
+              {Array.from({ length: PLACEHOLDER_COUNT }).map((_, i) => (
+                <StreamingTaskRow key={i} task={magic.partialTasks[i]} />
               ))}
             </div>
           </div>
@@ -145,7 +192,7 @@ export function GenerateDialog({ open, onOpenChange, project }: GenerateDialogPr
                 Retry
               </Button>
             </>
-          ) : showSkeleton ? (
+          ) : showStreaming ? (
             <Button type="button" variant="outline" onClick={closeAndReset}>
               Cancel
             </Button>

@@ -1,9 +1,11 @@
 import { test, expect, type Page } from "@playwright/test";
 
 // The /api/ai/generate-tasks route is stubbed so the spec is deterministic and
-// doesn't burn the Gemini quota on CI. The stubbed body mirrors the Zod schema
-// at src/lib/ai/schema.ts (AIResponseSchema) — exactly 5 tasks, each with a
-// valid category from src/lib/schemas.ts TASK_CATEGORIES.
+// doesn't burn the Gemini quota on CI. The real route streams text/plain JSON
+// chunks (see src/app/api/ai/generate-tasks/route.ts); we mirror that shape so
+// the client-side stream reader exercises the same parse path it does in prod.
+// The body matches the Zod schema at src/lib/ai/schema.ts (AIResponseSchema) —
+// exactly 5 tasks, each with a valid category from TASK_CATEGORIES.
 
 const PROJECT_TITLE = "E2E Test Project";
 
@@ -19,7 +21,7 @@ async function stubGenerate(page: Page) {
   await page.route("**/api/ai/generate-tasks", async (route) => {
     await route.fulfill({
       status: 200,
-      contentType: "application/json",
+      contentType: "text/plain; charset=utf-8",
       body: JSON.stringify({ tasks: STUBBED_TASKS }),
     });
   });

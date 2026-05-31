@@ -1,5 +1,5 @@
 import { google } from "@ai-sdk/google";
-import { NoObjectGeneratedError, generateObject } from "ai";
+import { streamObject } from "ai";
 
 import { buildUserPrompt, SYSTEM_PROMPT } from "@/lib/ai/prompt";
 import { AIResponseSchema, RequestSchema } from "@/lib/ai/schema";
@@ -64,20 +64,19 @@ export async function POST(request: Request) {
     return jsonError(message, 400);
   }
 
-  try {
-    const result = await generateObject({
-      model: google("gemini-2.5-flash"),
-      schema: AIResponseSchema,
-      system: SYSTEM_PROMPT,
-      prompt: buildUserPrompt(parsed.data),
-    });
-    return Response.json(result.object, { status: 200 });
-  } catch (err) {
-    if (NoObjectGeneratedError.isInstance(err)) {
-      console.error("[ai/generate-tasks] schema validation failed", err);
-      return jsonError("AI returned unexpected output. Try again.", 502);
-    }
-    console.error("[ai/generate-tasks] unhandled error", err);
-    return jsonError("Our AI hit a snag. Try again or add tasks manually.", 500);
-  }
+  // streamObject returns synchronously; upstream errors surface through the
+  // stream (onError + the textStream rejecting). The HTTP status is committed
+  // the moment we hand back the Response, so invalid-output detection has to
+  // happen on the client by validating the final accumulated JSON.
+  const result = streamObject({
+    model: google("gemini-2.5-flash"),
+    schema: AIResponseSchema,
+    system: SYSTEM_PROMPT,
+    prompt: buildUserPrompt(parsed.data),
+    onError({ error }) {
+      console.error("[ai/generate-tasks] stream error", error);
+    },
+  });
+
+  return result.toTextStreamResponse();
 }
