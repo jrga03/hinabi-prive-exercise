@@ -76,7 +76,7 @@ export function ProjectBoardView({ projectId }: ProjectBoardViewProps) {
           title="Project not found"
           description="It may have been deleted, or the link is incorrect."
           action={
-            <Button render={<Link href="/" />}>
+            <Button render={<Link href="/" />} nativeButton={false}>
               <ChevronLeft />
               Back to projects
             </Button>
