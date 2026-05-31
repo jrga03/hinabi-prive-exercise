@@ -2,7 +2,7 @@
 
 A Kanban project manager with AI-assisted task generation, built for the Hinabi Privé Front-End Developer take-home.
 
-**Live demo:** _to be filled after deploy_ — see [`#deploy`](#deploy)
+**Live demo:** [hinabi-prive-exercise.vercel.app](https://hinabi-prive-exercise.vercel.app/) — see [`#deploy`](#deploy)
 
 ---
 
