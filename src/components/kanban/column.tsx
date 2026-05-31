@@ -1,9 +1,27 @@
 "use client";
 
+import { useMemo } from "react";
+import { useDroppable } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+
 import { TaskCard } from "@/components/kanban/task-card";
 import { COLUMN_META } from "@/lib/constants";
 import type { Task, TaskStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+export const COLUMN_DROP_PREFIX = "column-";
+
+export function columnDropId(status: TaskStatus): string {
+  return `${COLUMN_DROP_PREFIX}${status}`;
+}
+
+export function isColumnDropId(id: string): boolean {
+  return id.startsWith(COLUMN_DROP_PREFIX);
+}
+
+export function statusFromColumnDropId(id: string): TaskStatus {
+  return id.slice(COLUMN_DROP_PREFIX.length) as TaskStatus;
+}
 
 interface KanbanColumnProps {
   status: TaskStatus;
@@ -21,6 +39,9 @@ const EMPTY_COPY: Record<TaskStatus, string> = {
 export function KanbanColumn({ status, tasks, tasksById, onSelectTask }: KanbanColumnProps) {
   const meta = COLUMN_META[status];
   const taskCount = tasks.length;
+  const dropId = columnDropId(status);
+  const { setNodeRef, isOver } = useDroppable({ id: dropId });
+  const taskIds = useMemo(() => tasks.map((t) => t.id), [tasks]);
 
   return (
     <section className="space-y-3" aria-label={`${meta.label} column`}>
@@ -34,22 +55,33 @@ export function KanbanColumn({ status, tasks, tasksById, onSelectTask }: KanbanC
           {taskCount}
         </span>
       </header>
-      <div className="space-y-3">
-        {taskCount === 0 ? (
-          <div className="border-border/70 text-muted-foreground/80 flex min-h-[6rem] items-center justify-center rounded-lg border border-dashed px-4 text-center text-xs">
-            {EMPTY_COPY[status]}
-          </div>
-        ) : (
-          tasks.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              parentTitle={task.parentTaskId ? tasksById.get(task.parentTaskId)?.title : undefined}
-              onSelect={onSelectTask}
-            />
-          ))
-        )}
-      </div>
+      <SortableContext id={dropId} items={taskIds} strategy={verticalListSortingStrategy}>
+        <div
+          ref={setNodeRef}
+          className={cn(
+            "min-h-[6rem] space-y-3 rounded-lg p-1 transition-colors",
+            isOver && "bg-muted/40 ring-foreground/10 ring-1"
+          )}
+        >
+          {taskCount === 0 ? (
+            <div className="border-border/70 text-muted-foreground/80 flex min-h-[5rem] items-center justify-center rounded-lg border border-dashed px-4 text-center text-xs">
+              {EMPTY_COPY[status]}
+            </div>
+          ) : (
+            tasks.map((task, index) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                position={{ index, total: taskCount }}
+                parentTitle={
+                  task.parentTaskId ? tasksById.get(task.parentTaskId)?.title : undefined
+                }
+                onSelect={onSelectTask}
+              />
+            ))
+          )}
+        </div>
+      </SortableContext>
     </section>
   );
 }

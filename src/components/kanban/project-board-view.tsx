@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { ChevronLeft, FileQuestion, MoreVertical, Pencil, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppHeader } from "@/components/layout/app-header";
-import { KanbanColumn } from "@/components/kanban/column";
+import { Board, BoardColumnsSkeleton } from "@/components/kanban/board";
 import { ProjectDialog } from "@/components/projects/project-dialog";
 import {
   AlertDialog,
@@ -30,10 +30,6 @@ import {
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDeleteProject, useProject } from "@/hooks/use-projects";
-import { useTasks } from "@/hooks/use-tasks";
-import { COLUMN_META, COLUMN_ORDER } from "@/lib/constants";
-import type { Task, TaskStatus } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 interface ProjectBoardViewProps {
   projectId: string;
@@ -41,18 +37,10 @@ interface ProjectBoardViewProps {
 
 export function ProjectBoardView({ projectId }: ProjectBoardViewProps) {
   const project = useProject(projectId);
-  const tasks = useTasks(projectId);
   const deleteProject = useDeleteProject();
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-
-  const tasksByStatus = useMemo(() => groupTasksByStatus(tasks.data ?? []), [tasks.data]);
-  const tasksById = useMemo(() => {
-    const map = new Map<string, Task>();
-    for (const task of tasks.data ?? []) map.set(task.id, task);
-    return map;
-  }, [tasks.data]);
 
   if (project.isPending) {
     return <BoardLoading />;
@@ -165,32 +153,7 @@ export function ProjectBoardView({ projectId }: ProjectBoardViewProps) {
         </div>
       </div>
 
-      {tasks.isError ? (
-        <Alert variant="destructive">
-          <AlertTitle>Couldn&apos;t load tasks</AlertTitle>
-          <AlertDescription>
-            {tasks.error.message}
-            <div className="mt-2">
-              <Button variant="outline" size="sm" onClick={() => tasks.refetch()}>
-                Try again
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
-      ) : tasks.isPending ? (
-        <BoardColumnsSkeleton />
-      ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          {COLUMN_ORDER.map((status) => (
-            <KanbanColumn
-              key={status}
-              status={status}
-              tasks={tasksByStatus[status]}
-              tasksById={tasksById}
-            />
-          ))}
-        </div>
-      )}
+      <Board projectId={current.id} />
 
       <ProjectDialog
         open={editOpen}
@@ -270,44 +233,4 @@ function BoardLoading() {
       <BoardColumnsSkeleton />
     </BoardShell>
   );
-}
-
-function BoardColumnsSkeleton() {
-  return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-      {COLUMN_ORDER.map((status) => (
-        <section key={status} className="space-y-3">
-          <div className="flex items-center gap-2">
-            <span
-              aria-hidden
-              className={cn("inline-block size-2 rounded-full", COLUMN_META[status].accent)}
-            />
-            <h2 className="font-heading text-sm font-medium tracking-tight">
-              {COLUMN_META[status].label}
-            </h2>
-            <Skeleton className="h-4 w-6 rounded-full" />
-          </div>
-          <div className="space-y-3">
-            <Skeleton className="h-24 w-full rounded-lg" />
-            <Skeleton className="h-24 w-full rounded-lg" />
-          </div>
-        </section>
-      ))}
-    </div>
-  );
-}
-
-function groupTasksByStatus(tasks: Task[]): Record<TaskStatus, Task[]> {
-  const grouped: Record<TaskStatus, Task[]> = {
-    todo: [],
-    in_progress: [],
-    done: [],
-  };
-  for (const task of tasks) {
-    grouped[task.status].push(task);
-  }
-  for (const status of COLUMN_ORDER) {
-    grouped[status].sort((a, b) => a.order - b.order);
-  }
-  return grouped;
 }
