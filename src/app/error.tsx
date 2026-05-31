@@ -8,7 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AppHeader } from "@/components/layout/app-header";
 import { Button } from "@/components/ui/button";
 
-export default function BoardError({
+export default function GlobalRouteError({
   error,
   unstable_retry,
 }: {
@@ -18,7 +18,7 @@ export default function BoardError({
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    console.error("Project board route error:", error);
+    console.error("Root route error:", error);
   }, [error]);
 
   function handleRetry() {
@@ -35,14 +35,14 @@ export default function BoardError({
             <AlertCircle className="size-5" aria-hidden />
           </div>
           <div className="space-y-1">
-            <h1 className="font-heading text-lg font-medium">Couldn&apos;t load this project</h1>
+            <h1 className="font-heading text-lg font-medium">Something went wrong</h1>
             <p className="text-muted-foreground text-sm">
-              {error.message || "Something went wrong while loading the board."}
+              {error.message || "An unexpected error interrupted this page."}
             </p>
           </div>
           <div className="flex items-center justify-center gap-2">
             <Button variant="outline" render={<Link href="/" />}>
-              Back to projects
+              Back home
             </Button>
             <Button onClick={handleRetry}>Try again</Button>
           </div>
