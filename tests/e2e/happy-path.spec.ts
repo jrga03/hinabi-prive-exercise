@@ -132,9 +132,10 @@ test.describe("Happy path", () => {
     await expect(page.getByRole("button", { name: "Draft the messaging hook" })).toBeVisible();
     await page.keyboard.press("Escape");
 
-    // 7. Open the project's Actions menu → Delete → confirm.
+    // 7. Back to the project list → open the card's Actions menu → Delete → confirm.
+    await page.getByRole("link", { name: "Projects" }).click();
     await page.getByRole("button", { name: `Actions for ${PROJECT_TITLE}` }).click();
-    await page.getByRole("menuitem", { name: "Delete project" }).click();
+    await page.getByRole("menuitem", { name: "Delete" }).click();
     await page.getByRole("button", { name: "Delete project" }).click();
 
     // Back on /, empty state is visible again.
