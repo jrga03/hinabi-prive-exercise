@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { CornerDownRight } from "lucide-react";
@@ -10,6 +10,8 @@ import { CATEGORY_META } from "@/lib/categories";
 import { COLUMN_META } from "@/lib/constants";
 import type { Task } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+const JUST_GENERATED_WINDOW_MS = 1500;
 
 interface TaskCardProps {
   task: Task;
@@ -23,10 +25,14 @@ export function TaskCard({ task, parentTitle, position, onSelect, className }: T
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
   });
+  const [isJustGenerated] = useState(
+    () => Date.now() - new Date(task.createdAt).getTime() < JUST_GENERATED_WINDOW_MS
+  );
 
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
+    ...(isJustGenerated ? ({ "--task-stagger-index": position.index } as CSSProperties) : null),
   };
 
   return (
@@ -37,12 +43,14 @@ export function TaskCard({ task, parentTitle, position, onSelect, className }: T
       aria-label={`Task: ${task.title}. Column: ${COLUMN_META[task.status].label}. Position ${
         position.index + 1
       } of ${position.total}.`}
+      data-just-generated={isJustGenerated ? "true" : undefined}
       style={style}
       {...attributes}
       {...listeners}
       className={cn(
         "group/task bg-card text-card-foreground ring-foreground/10 hover:bg-muted/40 focus-visible:ring-ring/50 block w-full touch-none rounded-lg p-3 text-left text-sm ring-1 transition-colors outline-none focus-visible:ring-2",
         isDragging && "opacity-40",
+        isJustGenerated && "animate-task-just-generated",
         className
       )}
     >
