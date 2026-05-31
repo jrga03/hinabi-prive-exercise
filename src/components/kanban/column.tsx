@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { Plus } from "lucide-react";
 
-import { AddTaskInline } from "@/components/kanban/add-task-inline";
+import { AddTaskInline, AddTaskTrigger } from "@/components/kanban/add-task-inline";
 import { TaskCard } from "@/components/kanban/task-card";
+import { Button } from "@/components/ui/button";
 import { COLUMN_META } from "@/lib/constants";
 import type { Task, TaskStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -50,6 +52,7 @@ export function KanbanColumn({
   const dropId = columnDropId(status);
   const { setNodeRef, isOver } = useDroppable({ id: dropId });
   const taskIds = useMemo(() => tasks.map((t) => t.id), [tasks]);
+  const [adding, setAdding] = useState(false);
 
   return (
     <section className="space-y-3" aria-label={`${meta.label} column`}>
@@ -62,6 +65,16 @@ export function KanbanColumn({
         >
           {taskCount}
         </span>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => setAdding(true)}
+          disabled={adding}
+          aria-label={`Add task to ${meta.label}`}
+          className="ml-auto"
+        >
+          <Plus />
+        </Button>
       </header>
       <SortableContext id={dropId} items={taskIds} strategy={verticalListSortingStrategy}>
         <div
@@ -88,7 +101,11 @@ export function KanbanColumn({
               />
             ))
           )}
-          <AddTaskInline projectId={projectId} status={status} />
+          {adding ? (
+            <AddTaskInline projectId={projectId} status={status} onDone={() => setAdding(false)} />
+          ) : (
+            <AddTaskTrigger onClick={() => setAdding(true)} />
+          )}
         </div>
       </SortableContext>
     </section>

@@ -11,27 +11,22 @@ import type { TaskStatus } from "@/lib/types";
 interface AddTaskInlineProps {
   projectId: string;
   status: TaskStatus;
+  onDone: () => void;
 }
 
-export function AddTaskInline({ projectId, status }: AddTaskInlineProps) {
-  const [editing, setEditing] = useState(false);
+export function AddTaskInline({ projectId, status, onDone }: AddTaskInlineProps) {
   const [title, setTitle] = useState("");
-  const createTask = useCreateTask();
   const inputRef = useRef<HTMLInputElement>(null);
+  const createTask = useCreateTask();
 
   useEffect(() => {
-    if (editing) inputRef.current?.focus();
-  }, [editing]);
-
-  function reset() {
-    setTitle("");
-    setEditing(false);
-  }
+    inputRef.current?.focus();
+  }, []);
 
   function submit() {
     const trimmed = title.trim();
     if (!trimmed) {
-      reset();
+      onDone();
       return;
     }
     createTask.mutate(
@@ -47,20 +42,8 @@ export function AddTaskInline({ projectId, status }: AddTaskInlineProps) {
         onError: (err) => toast.error("Couldn't add task", { description: err.message }),
       }
     );
-    reset();
-  }
-
-  if (!editing) {
-    return (
-      <button
-        type="button"
-        onClick={() => setEditing(true)}
-        className="text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring/50 inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg text-xs font-medium transition-colors outline-none focus-visible:ring-2"
-      >
-        <Plus className="size-3.5" aria-hidden />
-        Add task
-      </button>
-    );
+    setTitle("");
+    onDone();
   }
 
   return (
@@ -78,7 +61,8 @@ export function AddTaskInline({ projectId, status }: AddTaskInlineProps) {
         onKeyDown={(event) => {
           if (event.key === "Escape") {
             event.preventDefault();
-            reset();
+            setTitle("");
+            onDone();
           }
         }}
         placeholder="Task title…"
@@ -86,5 +70,18 @@ export function AddTaskInline({ projectId, status }: AddTaskInlineProps) {
         aria-label="New task title"
       />
     </form>
+  );
+}
+
+export function AddTaskTrigger({ onClick, label }: { onClick: () => void; label?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="border-border/70 text-muted-foreground/90 hover:border-foreground/30 hover:bg-muted hover:text-foreground focus-visible:ring-ring/50 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-dashed text-xs font-medium transition-colors outline-none focus-visible:ring-2"
+    >
+      <Plus className="size-3.5" aria-hidden />
+      {label ?? "Add task"}
+    </button>
   );
 }
