@@ -67,8 +67,15 @@ export function Board({ projectId, onSelectTask }: BoardProps) {
   //   2. Pointer over a column → the closest card IN that column, else the
   //      column itself (empty-column case).
   //   3. Fall back to closestCorners (rare — mostly off-screen drags).
+  //
+  // The active item is always excluded — once handleDragOver moves it into
+  // the target column via the cache, its sortable.containerId updates to that
+  // column. Without the exclusion, the active card would win the "closest
+  // card in target column" lookup and over.id === active.id makes the drop a
+  // no-op.
   const collisionDetection = useCallback<CollisionDetection>((args) => {
-    const inside = pointerWithin(args);
+    const activeIdStr = String(args.active.id);
+    const inside = pointerWithin(args).filter((c) => String(c.id) !== activeIdStr);
 
     const insideCard = inside.filter((c) => !isColumnDropId(String(c.id)));
     if (insideCard.length > 0) return insideCard;
@@ -76,7 +83,7 @@ export function Board({ projectId, onSelectTask }: BoardProps) {
     const insideColumn = inside.find((c) => isColumnDropId(String(c.id)));
     if (insideColumn) {
       const targetColumnId = String(insideColumn.id);
-      const corners = closestCorners(args);
+      const corners = closestCorners(args).filter((c) => String(c.id) !== activeIdStr);
       const sameColumnCards = corners.filter((c) => {
         if (isColumnDropId(String(c.id))) return false;
         const sortable = (
@@ -90,9 +97,9 @@ export function Board({ projectId, onSelectTask }: BoardProps) {
       return [insideColumn];
     }
 
-    const intersect = rectIntersection(args);
+    const intersect = rectIntersection(args).filter((c) => String(c.id) !== activeIdStr);
     if (intersect.length > 0) return intersect;
-    return closestCorners(args);
+    return closestCorners(args).filter((c) => String(c.id) !== activeIdStr);
   }, []);
 
   if (tasks.isError) {
