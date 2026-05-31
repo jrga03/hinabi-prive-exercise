@@ -150,6 +150,7 @@ function TaskDetailBody({ task, allTasks, projectId, onClose, onSelectTask }: Ta
   const [confirmDelete, setConfirmDelete] = useState(false);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSaveRef = useRef<(() => void) | null>(null);
   const taskRef = useRef(task);
   taskRef.current = task;
 
@@ -164,7 +165,6 @@ function TaskDetailBody({ task, allTasks, projectId, onClose, onSelectTask }: Ta
   // stomp user edits mid-typing.
   useEffect(() => {
     form.reset(toFormValues(taskRef.current));
-    if (debounceRef.current) clearTimeout(debounceRef.current);
     // Acknowledge unused arg lint: form is stable per RHF docs.
   }, [task.id, form]);
 
@@ -177,7 +177,16 @@ function TaskDetailBody({ task, allTasks, projectId, onClose, onSelectTask }: Ta
       // form.reset emits type === undefined; only react to user changes.
       if (type !== "change") return;
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => {
+
+      // Snapshot the task and values to save when the debounce fires (or when
+      // a flush is forced by close / task switch / unmount). Capturing here —
+      // not at fire time — means we always persist against the task the user
+      // was editing, not whichever task is currently mounted.
+      const targetTaskId = taskRef.current.id;
+      const baseline = taskRef.current;
+      const performSave = () => {
+        pendingSaveRef.current = null;
+        debounceRef.current = null;
         // safeParse is the authoritative validity gate. We deliberately do
         // NOT read form.formState.isValid here — RHF v7's proxy only tracks
         // state fields that are accessed during render, so reading isValid
@@ -185,12 +194,13 @@ function TaskDetailBody({ task, allTasks, projectId, onClose, onSelectTask }: Ta
         // every save.
         const safeValues = FormSchema.safeParse(values);
         if (!safeValues.success) return;
-        const patch = buildPatch(safeValues.data, taskRef.current);
+        const patch = buildPatch(safeValues.data, baseline);
         if (Object.keys(patch).length === 0) return;
         updateTask.mutate(
-          { id: taskRef.current.id, projectId, patch },
+          { id: targetTaskId, projectId, patch },
           {
             onSuccess: () => {
+              if (taskRef.current.id !== targetTaskId) return;
               setSavedAt(Date.now());
               if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
               savedTimerRef.current = setTimeout(() => setSavedAt(null), 1500);
@@ -200,14 +210,29 @@ function TaskDetailBody({ task, allTasks, projectId, onClose, onSelectTask }: Ta
             },
           }
         );
-      }, 500);
+      };
+      pendingSaveRef.current = performSave;
+      debounceRef.current = setTimeout(performSave, 500);
     });
     return () => sub.unsubscribe();
   }, [form, projectId, updateTask]);
 
+  // Flush any pending save when the task id changes (user switched cards) and
+  // on unmount (panel closed). Without this, an edit followed by a quick close
+  // is lost because the debounce timer is cancelled before it fires.
   useEffect(
     () => () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+      }
+      pendingSaveRef.current?.();
+    },
+    [task.id]
+  );
+
+  useEffect(
+    () => () => {
       if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
     },
     []
@@ -307,7 +332,24 @@ function TaskDetailBody({ task, allTasks, projectId, onClose, onSelectTask }: Ta
                         onValueChange={(value) => field.onChange(value as TaskStatus)}
                       >
                         <SelectTrigger className="w-full">
-                          <SelectValue />
+                          <SelectValue>
+                            {(value: unknown) => {
+                              const meta =
+                                typeof value === "string"
+                                  ? COLUMN_META[value as TaskStatus]
+                                  : undefined;
+                              if (!meta) return null;
+                              return (
+                                <>
+                                  <span
+                                    aria-hidden
+                                    className={cn("inline-block size-2 rounded-full", meta.accent)}
+                                  />
+                                  <span>{meta.label}</span>
+                                </>
+                              );
+                            }}
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                           <SelectGroup>
@@ -340,7 +382,35 @@ function TaskDetailBody({ task, allTasks, projectId, onClose, onSelectTask }: Ta
                     <FormControl>
                       <Select value={field.value} onValueChange={(value) => field.onChange(value)}>
                         <SelectTrigger className="w-full">
-                          <SelectValue />
+                          <SelectValue>
+                            {(value: unknown) => {
+                              if (value === NO_CATEGORY || value == null) {
+                                return (
+                                  <>
+                                    <span
+                                      aria-hidden
+                                      className="bg-muted-foreground/40 inline-block size-2 rounded-full"
+                                    />
+                                    <span className="text-muted-foreground">No category</span>
+                                  </>
+                                );
+                              }
+                              const meta =
+                                typeof value === "string"
+                                  ? CATEGORY_META[value as TaskCategory & string]
+                                  : undefined;
+                              if (!meta) return null;
+                              return (
+                                <>
+                                  <span
+                                    aria-hidden
+                                    className={cn("inline-block size-2 rounded-full", meta.dot)}
+                                  />
+                                  <span>{meta.label}</span>
+                                </>
+                              );
+                            }}
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                           <SelectGroup>
