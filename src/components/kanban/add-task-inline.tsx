@@ -78,7 +78,7 @@ export function AddTaskTrigger({ onClick, label }: { onClick: () => void; label?
     <button
       type="button"
       onClick={onClick}
-      className="border-border/70 text-muted-foreground/90 hover:border-foreground/30 hover:bg-muted hover:text-foreground focus-visible:ring-ring/50 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-dashed text-xs font-medium transition-colors outline-none focus-visible:ring-2 max-sm:h-11"
+      className="border-border/70 text-muted-foreground hover:border-foreground/30 hover:bg-muted hover:text-foreground focus-visible:ring-ring/50 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-dashed text-xs font-medium transition-colors outline-none focus-visible:ring-2 max-sm:h-11"
     >
       <Plus className="size-3.5" aria-hidden />
       {label ?? "Add task"}

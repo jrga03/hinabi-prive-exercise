@@ -85,7 +85,7 @@ export function KanbanColumn({
           )}
         >
           {taskCount === 0 ? (
-            <div className="border-border/70 text-muted-foreground/80 flex min-h-[5rem] items-center justify-center rounded-lg border border-dashed px-4 text-center text-xs">
+            <div className="border-border/70 text-muted-foreground flex min-h-[5rem] items-center justify-center rounded-lg border border-dashed px-4 text-center text-xs">
               {EMPTY_COPY[status]}
             </div>
           ) : (

@@ -40,7 +40,7 @@ export function ProjectCard({ project, taskCount, onEdit, onDelete }: ProjectCar
             {project.description ? (
               <p className="text-muted-foreground line-clamp-2 text-sm">{project.description}</p>
             ) : (
-              <p className="text-muted-foreground/70 text-sm italic">No description</p>
+              <p className="text-muted-foreground text-sm italic">No description</p>
             )}
           </div>
           {/* Spacer so the absolute-positioned menu doesn't overlap text */}

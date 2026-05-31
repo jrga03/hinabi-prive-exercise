@@ -437,7 +437,7 @@ function SubtaskSection({ parentTask, subtasks, projectId, onSelectTask }: Subta
         <span className="text-muted-foreground text-xs tabular-nums">{subtasks.length}</span>
       </header>
       {subtasks.length === 0 ? (
-        <p className="text-muted-foreground/80 px-1 text-xs">No sub-tasks yet.</p>
+        <p className="text-muted-foreground px-1 text-xs">No sub-tasks yet.</p>
       ) : (
         <ul className="space-y-1">
           {subtasks.map((sub) => (
@@ -455,7 +455,7 @@ function SubtaskSection({ parentTask, subtasks, projectId, onSelectTask }: Subta
         <button
           type="button"
           onClick={() => setAdding(true)}
-          className="border-border/70 text-muted-foreground/90 hover:border-foreground/30 hover:bg-muted hover:text-foreground focus-visible:ring-ring/50 inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-md border border-dashed text-xs font-medium transition-colors outline-none focus-visible:ring-2 max-sm:h-11"
+          className="border-border/70 text-muted-foreground hover:border-foreground/30 hover:bg-muted hover:text-foreground focus-visible:ring-ring/50 inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-md border border-dashed text-xs font-medium transition-colors outline-none focus-visible:ring-2 max-sm:h-11"
         >
           <Plus className="size-3.5" aria-hidden />
           Add sub-task
@@ -583,21 +583,19 @@ function AddSubtaskInline({ parentTask, projectId, onDone }: AddSubtaskInlinePro
 }
 
 function SaveIndicator({ saving, saved }: { saving: boolean; saved: boolean }) {
-  if (saving) {
-    return (
-      <span className="text-muted-foreground inline-flex items-center gap-1.5 text-xs">
-        <Loader2 className="size-3 animate-spin" aria-hidden />
-        Saving…
-      </span>
-    );
-  }
-  if (saved) {
-    return (
-      <span className="inline-flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
-        <Check className="size-3" aria-hidden />
-        Saved
-      </span>
-    );
-  }
-  return null;
+  return (
+    <span role="status" aria-live="polite" className="inline-flex min-h-4 items-center text-xs">
+      {saving ? (
+        <span className="text-muted-foreground inline-flex items-center gap-1.5">
+          <Loader2 className="size-3 animate-spin" aria-hidden />
+          Saving…
+        </span>
+      ) : saved ? (
+        <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+          <Check className="size-3" aria-hidden />
+          Saved
+        </span>
+      ) : null}
+    </span>
+  );
 }
