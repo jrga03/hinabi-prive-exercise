@@ -98,3 +98,33 @@ finalTargetCol.splice(targetIndex, 0, { ...dragged, status: targetStatus });
 **Bug:** For intra-column drags (same source + target column), excluding the active task from the column before computing the over.id's index means: if the user drags task[0] down by one slot to land on task[1]'s position, `targetCol` (without active) is `[task[1], task[2]]`, so `indexInColumn(targetCol, task[1].id) === 0`. Splicing active at index 0 produces `[active, task[1], task[2]]` — i.e., the original order. The drag visually moved the card but the commit was a no-op. Only multi-position drags (over.id past task[1]) showed any change. Type-check passed; the bug only surfaced with manual drag interaction.
 **Fix:** Special-case intra-column moves in `handleDragEnd` to use `arrayMove(col, oldIndex, newIndex)` from `@dnd-kit/sortable` over the **full** column (including active), with both indices computed from the same array. `arrayMove` handles both forward and backward swaps correctly. Cross-column logic was unchanged. Also switched the source-of-truth from the (potentially-mutated-by-onDragOver) cache to the pre-drag snapshot, so the final commit is computed deterministically regardless of onDragOver interim state.
 **Lesson:** Whenever the dnd-kit handler computes index-based reorder, **either include the active item in the array on both sides of the index lookup, or use `arrayMove`/`arrayInsertAt`.** Mixing "exclude active" + "look up over.id index" only works for cross-column moves; for intra-column it silently no-ops the single-position swap, which is the most common drag the user will actually try. Verifying with `npm run typecheck && npm run lint` is not enough for dnd-kit — every reorder direction needs a manual drag test.
+
+---
+
+## 2026-05-31 - `useEffect` reset of local state tripped `react-hooks/set-state-in-effect`
+
+**Tool:** Claude Code (terminal CLI)
+**Model:** Opus 4.7
+**Task:** In `src/components/ai/generate-dialog.tsx`, reset the `context` textarea to `""` whenever the dialog closes.
+**Prompt:** Internal — Task 17 implementation, "On close, clear the optional context textarea."
+**Generated output:**
+
+```tsx
+const [context, setContext] = useState("");
+
+useEffect(() => {
+  if (!open) setContext("");
+}, [open]);
+```
+
+**Bug:** ESLint flagged `react-hooks/set-state-in-effect` — a newer React Hook rule that warns when state is updated as a _reaction to a prop change_ inside `useEffect`, because it forces an extra render and an avoidable layout pass. The lint blocked because the build pipeline treats this rule as an error. The "reset state when prop X changes" pattern was idiomatic in older React docs/training data; the recommendation now is to either (a) derive the value, (b) use a `key` prop to remount, or (c) reset in the same handler that flips the prop.
+**Fix:** Replaced the effect with a `closeAndReset()` helper that the cancel button, success branch of `handleGenerate`, and the dialog's `onOpenChange={false}` branch all call. Reset and prop change happen in the same handler — no observer effect needed.
+
+```tsx
+function closeAndReset() {
+  setContext("");
+  onOpenChange(false);
+}
+```
+
+**Lesson:** Whenever a model proposes `useEffect(() => { if (!propX) setLocal(initial) }, [propX])`, treat it as a smell. Either inline the reset in the handler that flips `propX`, or pass a `key` to force a remount. The "synchronize derived state in an effect" pattern dates a model's training data — modern React explicitly discourages it (rules-of-hooks added `set-state-in-effect` as a lint error). The fix is almost always to push state ownership up to the same handler, not down into an observer.
