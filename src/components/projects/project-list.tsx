@@ -67,6 +67,8 @@ export function ProjectList() {
     });
   }
 
+  const isEmpty = projects.isSuccess && projects.data.length === 0;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -76,10 +78,12 @@ export function ProjectList() {
           </p>
           <h1 className="font-heading text-2xl font-semibold tracking-tight">Projects</h1>
         </div>
-        <Button onClick={handleCreate}>
-          <Plus />
-          New project
-        </Button>
+        {isEmpty ? null : (
+          <Button onClick={handleCreate}>
+            <Plus />
+            New project
+          </Button>
+        )}
       </div>
 
       {projects.isPending ? (

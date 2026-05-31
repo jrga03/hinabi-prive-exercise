@@ -436,11 +436,15 @@ function SubtaskSection({ parentTask, subtasks, projectId, onSelectTask }: Subta
         <h3 className="text-foreground text-xs font-semibold tracking-wide uppercase">Sub-tasks</h3>
         <span className="text-muted-foreground text-xs tabular-nums">{subtasks.length}</span>
       </header>
-      <ul className="space-y-1">
-        {subtasks.map((sub) => (
-          <SubtaskRow key={sub.id} task={sub} projectId={projectId} onOpen={onSelectTask} />
-        ))}
-      </ul>
+      {subtasks.length === 0 ? (
+        <p className="text-muted-foreground/80 px-1 text-xs">No sub-tasks yet.</p>
+      ) : (
+        <ul className="space-y-1">
+          {subtasks.map((sub) => (
+            <SubtaskRow key={sub.id} task={sub} projectId={projectId} onOpen={onSelectTask} />
+          ))}
+        </ul>
+      )}
       {adding ? (
         <AddSubtaskInline
           parentTask={parentTask}
