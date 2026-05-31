@@ -1,1 +1,18 @@
-npm run lint && npm run typecheck && npm test && npm run test:e2e
+if ! curl -sf http://localhost:3000 >/dev/null 2>&1; then
+  npm run dev >/tmp/pre-push-dev.log 2>&1 &
+  DEV_PID=$!
+  trap 'pkill -P $DEV_PID 2>/dev/null; kill $DEV_PID 2>/dev/null' EXIT
+fi
+
+npm run lint & LINT=$!
+npm run typecheck & TYPECHECK=$!
+npm test & TEST=$!
+
+FAIL=0
+wait $LINT || FAIL=1
+wait $TYPECHECK || FAIL=1
+wait $TEST || FAIL=1
+
+[ $FAIL -eq 0 ] || exit 1
+
+npm run test:e2e
