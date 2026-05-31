@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 
+import { AddTaskInline } from "@/components/kanban/add-task-inline";
 import { TaskCard } from "@/components/kanban/task-card";
 import { COLUMN_META } from "@/lib/constants";
 import type { Task, TaskStatus } from "@/lib/types";
@@ -24,6 +25,7 @@ export function statusFromColumnDropId(id: string): TaskStatus {
 }
 
 interface KanbanColumnProps {
+  projectId: string;
   status: TaskStatus;
   tasks: Task[];
   tasksById: Map<string, Task>;
@@ -36,7 +38,13 @@ const EMPTY_COPY: Record<TaskStatus, string> = {
   done: "Finished work lands here.",
 };
 
-export function KanbanColumn({ status, tasks, tasksById, onSelectTask }: KanbanColumnProps) {
+export function KanbanColumn({
+  projectId,
+  status,
+  tasks,
+  tasksById,
+  onSelectTask,
+}: KanbanColumnProps) {
   const meta = COLUMN_META[status];
   const taskCount = tasks.length;
   const dropId = columnDropId(status);
@@ -80,6 +88,7 @@ export function KanbanColumn({ status, tasks, tasksById, onSelectTask }: KanbanC
               />
             ))
           )}
+          <AddTaskInline projectId={projectId} status={status} />
         </div>
       </SortableContext>
     </section>

@@ -215,6 +215,7 @@ export function Board({ projectId, onSelectTask }: BoardProps) {
         {COLUMN_ORDER.map((status) => (
           <KanbanColumn
             key={status}
+            projectId={projectId}
             status={status}
             tasks={grouped[status]}
             tasksById={tasksById}
