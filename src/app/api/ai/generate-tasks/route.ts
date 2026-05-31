@@ -39,6 +39,10 @@ function jsonError(message: string, status: number): Response {
   return Response.json({ error: message }, { status });
 }
 
+export function __resetRateLimitForTests(): void {
+  rateBucket.clear();
+}
+
 export async function POST(request: Request) {
   const key = clientKey(request);
   if (!checkRateLimit(key)) {
