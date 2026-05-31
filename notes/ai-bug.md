@@ -182,3 +182,48 @@ className =
 ```
 
 **Lesson:** Default shadcn dark-mode palettes are tuned for aesthetic punch, not WCAG. Always run axe (or a contrast checker) against _both_ themes before shipping. The trap is the "lighter primary in dark mode for visual energy" convention — it looks great but tends to fail AA against white text. Either darken the primary back to the light-theme value (consistent, safer) or swap to a darker foreground; don't trust the scaffold defaults.
+
+---
+
+## 2026-05-31 - Task detail panel auto-save silently dead because `formState.isValid` was unreliable
+
+**Tool:** Cursor (Composer) — original implementation
+**Model:** Claude Sonnet 4.6
+**Task:** Detail panel auto-save with debounced `form.watch` subscriber.
+**Prompt:** Internal — "debounce 500 ms, then if the form is valid persist a diff patch via the update mutation."
+**Generated output:**
+
+```ts
+const sub = form.watch((values, { type }) => {
+  if (type !== "change") return;
+  if (debounceRef.current) clearTimeout(debounceRef.current);
+  debounceRef.current = setTimeout(() => {
+    if (!form.formState.isValid) return;   // <-- always false
+    const safeValues = FormSchema.safeParse(values);
+    if (!safeValues.success) return;
+    ...
+    updateTask.mutate(...);
+  }, 500);
+});
+```
+
+**Bug:** Surfaced when wiring the Playwright happy-path: every keystroke fired the watch subscriber, the debounce timer ran, `safeParse` passed, but `form.formState.isValid` returned `false` and the mutation was skipped. The "Saved" indicator never appeared. RHF v7's `formState` is a Proxy that only computes a given field (e.g., `isValid`) when something subscribes to it _during render_. Since `isValid` was only read inside the timer callback — never destructured at render time — the proxy never set up the tracker, and the value stayed at its initial `false`.
+
+The bug was invisible during manual click-through because nobody had explicitly waited for the "Saved" pill to appear; the form values still update in the local React state, so an edit "looked" like it worked until the panel was closed and the cache reload restored the old title.
+
+**Fix:** Removed the `formState.isValid` check entirely. `safeParse(values)` already runs the full Zod schema and is the authoritative validity gate; the `isValid` read was redundant _and_ wrong. Added a comment so the next person doesn't put it back.
+
+```ts
+debounceRef.current = setTimeout(() => {
+  // safeParse is the authoritative validity gate. We deliberately do
+  // NOT read form.formState.isValid here — RHF v7's proxy only tracks
+  // state fields that are accessed during render, so reading isValid
+  // from this callback returns a stale `false` and silently blocks
+  // every save.
+  const safeValues = FormSchema.safeParse(values);
+  if (!safeValues.success) return;
+  ...
+}, 500);
+```
+
+**Lesson:** Don't read `form.formState.*` from inside a `setTimeout`/`watch`/`useEffect` callback unless you _also_ destructure that field during render. The proxy's "track on access" model means the value you get from a non-render context can be stale forever. When you already have the values in hand, validate them directly with the schema — that's authoritative and doesn't depend on RHF's render-tracking. Generally: any "if (X) bail" guard in a callback that depends on RHF's `formState` should be considered suspect until proven correct.

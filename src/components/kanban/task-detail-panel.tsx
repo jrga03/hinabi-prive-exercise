@@ -178,7 +178,11 @@ function TaskDetailBody({ task, allTasks, projectId, onClose, onSelectTask }: Ta
       if (type !== "change") return;
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
-        if (!form.formState.isValid) return;
+        // safeParse is the authoritative validity gate. We deliberately do
+        // NOT read form.formState.isValid here — RHF v7's proxy only tracks
+        // state fields that are accessed during render, so reading isValid
+        // from this callback returns a stale `false` and silently blocks
+        // every save.
         const safeValues = FormSchema.safeParse(values);
         if (!safeValues.success) return;
         const patch = buildPatch(safeValues.data, taskRef.current);
