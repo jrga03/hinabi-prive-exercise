@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { LayoutDashboard, Plus } from "lucide-react"
 import { toast } from "sonner"
 
@@ -9,12 +9,20 @@ import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ProjectCard } from "@/components/projects/project-card"
+import { ProjectDialog } from "@/components/projects/project-dialog"
 import { useAllTasks } from "@/hooks/use-all-tasks"
 import { useProjects } from "@/hooks/use-projects"
+import type { Project } from "@/lib/types"
+
+type DialogState =
+  | { mode: "create" }
+  | { mode: "edit"; project: Project }
+  | { mode: "closed" }
 
 export function ProjectList() {
   const projects = useProjects()
   const tasks = useAllTasks()
+  const [dialog, setDialog] = useState<DialogState>({ mode: "closed" })
 
   const taskCounts = useMemo(() => {
     const map = new Map<string, number>()
@@ -25,15 +33,19 @@ export function ProjectList() {
   }, [tasks.data])
 
   function handleCreate() {
-    toast.info("Project dialog wires up next")
+    setDialog({ mode: "create" })
   }
 
-  function handleEdit() {
-    toast.info("Project dialog wires up next")
+  function handleEdit(project: Project) {
+    setDialog({ mode: "edit", project })
   }
 
   function handleDelete() {
     toast.info("Delete confirmation wires up next")
+  }
+
+  function handleDialogChange(open: boolean) {
+    if (!open) setDialog({ mode: "closed" })
   }
 
   return (
@@ -92,6 +104,13 @@ export function ProjectList() {
           ))}
         </div>
       )}
+
+      <ProjectDialog
+        open={dialog.mode !== "closed"}
+        onOpenChange={handleDialogChange}
+        mode={dialog.mode === "edit" ? "edit" : "create"}
+        initialData={dialog.mode === "edit" ? dialog.project : undefined}
+      />
     </div>
   )
 }
