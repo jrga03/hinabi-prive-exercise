@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -8,13 +8,16 @@ import {
   MouseSensor,
   TouchSensor,
   closestCorners,
+  pointerWithin,
+  rectIntersection,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -55,6 +58,42 @@ export function Board({ projectId, onSelectTask }: BoardProps) {
     useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+
+  // Card-first collision detection. closestCorners alone lets the column drop
+  // zone win when the cursor is in the padding/gap between cards (the "drop
+  // at position 2 lands at position 1" bug), and unfiltered card preference
+  // pulls cross-column drops back into the source column. The order:
+  //   1. Pointer over a card → that card.
+  //   2. Pointer over a column → the closest card IN that column, else the
+  //      column itself (empty-column case).
+  //   3. Fall back to closestCorners (rare — mostly off-screen drags).
+  const collisionDetection = useCallback<CollisionDetection>((args) => {
+    const inside = pointerWithin(args);
+
+    const insideCard = inside.filter((c) => !isColumnDropId(String(c.id)));
+    if (insideCard.length > 0) return insideCard;
+
+    const insideColumn = inside.find((c) => isColumnDropId(String(c.id)));
+    if (insideColumn) {
+      const targetColumnId = String(insideColumn.id);
+      const corners = closestCorners(args);
+      const sameColumnCards = corners.filter((c) => {
+        if (isColumnDropId(String(c.id))) return false;
+        const sortable = (
+          c.data?.droppableContainer?.data?.current as
+            | { sortable?: { containerId?: string } }
+            | undefined
+        )?.sortable;
+        return sortable?.containerId === targetColumnId;
+      });
+      if (sameColumnCards.length > 0) return sameColumnCards;
+      return [insideColumn];
+    }
+
+    const intersect = rectIntersection(args);
+    if (intersect.length > 0) return intersect;
+    return closestCorners(args);
+  }, []);
 
   if (tasks.isError) {
     return (
@@ -141,42 +180,51 @@ export function Board({ projectId, onSelectTask }: BoardProps) {
     }
 
     const sourceStatus = dragged.status;
-    let updates: ReorderTaskUpdate[];
+    const sourceCol = sortedColumn(snapshot, sourceStatus, activeIdStr);
+    const targetColWithoutActive =
+      sourceStatus === targetStatus ? sourceCol : sortedColumn(snapshot, targetStatus, activeIdStr);
 
-    if (sourceStatus === targetStatus) {
-      // Intra-column: arrayMove handles both forward and backward swaps; using
-      // sortedColumn(...).splice would silently no-op when dragging down by 1.
-      const col = sortedColumn(snapshot, sourceStatus);
-      const oldIndex = col.findIndex((t) => t.id === activeIdStr);
-      const newIndex = isColumnDropId(overIdStr)
-        ? col.length - 1
-        : col.findIndex((t) => t.id === overIdStr);
-      if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) {
+    // Resolve the insertion index in the column WITHOUT the active item. This
+    // is more robust than arrayMove(oldIdx, overIdx), which silently produces
+    // the wrong position when the user drops on the *lower* half of a card —
+    // we'd insert above when they wanted below.
+    let insertAt: number;
+    if (isColumnDropId(overIdStr)) {
+      // Empty column or gap below all cards. Use cursor Y vs column rect
+      // center to differentiate "drop near top" from "drop near bottom".
+      const overRect = over.rect;
+      const activeRect = active.rect.current.translated;
+      const activeCenterY = activeRect ? activeRect.top + activeRect.height / 2 : null;
+      const overCenterY = overRect ? overRect.top + overRect.height / 2 : null;
+      insertAt =
+        activeCenterY != null && overCenterY != null && activeCenterY < overCenterY
+          ? 0
+          : targetColWithoutActive.length;
+    } else {
+      const overIdx = targetColWithoutActive.findIndex((t) => t.id === overIdStr);
+      if (overIdx === -1) {
         queryClient.setQueryData(taskKeys.byProject(projectId), snapshot);
         return;
       }
-      updates = arrayMove(col, oldIndex, newIndex).map((t, i) => ({
-        id: t.id,
-        status: sourceStatus,
-        order: i,
-      }));
-    } else {
-      // Cross-column: drop active into target at over's position, then
-      // renumber both columns so the source has no gap.
-      const sourceCol = sortedColumn(snapshot, sourceStatus, activeIdStr);
-      const targetCol = sortedColumn(snapshot, targetStatus);
-      const targetIndex = isColumnDropId(overIdStr)
-        ? targetCol.length
-        : (indexInColumn(targetCol, overIdStr) ?? targetCol.length);
-
-      const newTargetCol = [...targetCol];
-      newTargetCol.splice(targetIndex, 0, { ...dragged, status: targetStatus });
-
-      updates = [
-        ...newTargetCol.map((t, i) => ({ id: t.id, status: targetStatus, order: i })),
-        ...sourceCol.map((t, i) => ({ id: t.id, status: sourceStatus, order: i })),
-      ];
+      const overRect = over.rect;
+      const activeRect = active.rect.current.translated;
+      const isBelowOverItem =
+        activeRect != null &&
+        overRect != null &&
+        activeRect.top + activeRect.height / 2 > overRect.top + overRect.height / 2;
+      insertAt = overIdx + (isBelowOverItem ? 1 : 0);
     }
+
+    const newTargetCol = [...targetColWithoutActive];
+    newTargetCol.splice(insertAt, 0, { ...dragged, status: targetStatus });
+
+    const updates: ReorderTaskUpdate[] =
+      sourceStatus === targetStatus
+        ? newTargetCol.map((t, i) => ({ id: t.id, status: targetStatus, order: i }))
+        : [
+            ...newTargetCol.map((t, i) => ({ id: t.id, status: targetStatus, order: i })),
+            ...sourceCol.map((t, i) => ({ id: t.id, status: sourceStatus, order: i })),
+          ];
 
     if (isNoopAgainst(snapshot, updates)) {
       queryClient.setQueryData(taskKeys.byProject(projectId), snapshot);
@@ -208,7 +256,7 @@ export function Board({ projectId, onSelectTask }: BoardProps) {
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCorners}
+      collisionDetection={collisionDetection}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
