@@ -7,7 +7,10 @@ export function AppHeader({ slot }: { slot?: ReactNode }) {
   return (
     <header className="border-border/60 bg-background/80 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40 border-b backdrop-blur">
       <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-4 px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
+        <Link
+          href="/"
+          className="focus-visible:ring-ring/50 focus-visible:ring-offset-background -m-1 inline-flex items-center gap-2 rounded-md p-1 font-semibold tracking-tight outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+        >
           <span aria-hidden className="bg-primary inline-block size-6 rounded-md" />
           <span className="text-sm">TIO</span>
         </Link>
