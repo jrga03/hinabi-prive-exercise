@@ -7,6 +7,7 @@ import { ChevronLeft, FileQuestion, MoreVertical, Pencil, Sparkles, Trash2 } fro
 import { toast } from "sonner";
 
 import { AppHeader } from "@/components/layout/app-header";
+import { KanbanColumn } from "@/components/kanban/column";
 import { ProjectDialog } from "@/components/projects/project-dialog";
 import {
   AlertDialog,
@@ -47,6 +48,11 @@ export function ProjectBoardView({ projectId }: ProjectBoardViewProps) {
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const tasksByStatus = useMemo(() => groupTasksByStatus(tasks.data ?? []), [tasks.data]);
+  const tasksById = useMemo(() => {
+    const map = new Map<string, Task>();
+    for (const task of tasks.data ?? []) map.set(task.id, task);
+    return map;
+  }, [tasks.data]);
 
   if (project.isPending) {
     return <BoardLoading />;
@@ -171,14 +177,16 @@ export function ProjectBoardView({ projectId }: ProjectBoardViewProps) {
             </div>
           </AlertDescription>
         </Alert>
+      ) : tasks.isPending ? (
+        <BoardColumnsSkeleton />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {COLUMN_ORDER.map((status) => (
-            <BoardColumnPlaceholder
+            <KanbanColumn
               key={status}
               status={status}
               tasks={tasksByStatus[status]}
-              loading={tasks.isPending}
+              tasksById={tasksById}
             />
           ))}
         </div>
@@ -259,72 +267,33 @@ function BoardLoading() {
           <Skeleton className="size-9" />
         </div>
       </div>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {COLUMN_ORDER.map((status) => (
-          <section key={status} className="space-y-3">
-            <ColumnHeader status={status} count={0} />
-            <div className="space-y-3">
-              <Skeleton className="h-24 w-full rounded-lg" />
-              <Skeleton className="h-24 w-full rounded-lg" />
-            </div>
-          </section>
-        ))}
-      </div>
+      <BoardColumnsSkeleton />
     </BoardShell>
   );
 }
 
-function ColumnHeader({ status, count }: { status: TaskStatus; count: number }) {
+function BoardColumnsSkeleton() {
   return (
-    <div className="flex items-center gap-2">
-      <span
-        aria-hidden
-        className={cn("inline-block size-2 rounded-full", COLUMN_META[status].accent)}
-      />
-      <h2 className="font-heading text-sm font-medium tracking-tight">
-        {COLUMN_META[status].label}
-      </h2>
-      <span
-        aria-label={`${count} ${count === 1 ? "task" : "tasks"}`}
-        className="bg-muted text-muted-foreground inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-medium tabular-nums"
-      >
-        {count}
-      </span>
-    </div>
-  );
-}
-
-function BoardColumnPlaceholder({
-  status,
-  tasks,
-  loading,
-}: {
-  status: TaskStatus;
-  tasks: Task[];
-  loading: boolean;
-}) {
-  return (
-    <section className="space-y-3">
-      <ColumnHeader status={status} count={tasks.length} />
-      <div className="space-y-3">
-        {loading ? (
-          <>
-            <Skeleton className="h-24 w-full rounded-lg" />
-            <Skeleton className="h-24 w-full rounded-lg" />
-          </>
-        ) : tasks.length === 0 ? (
-          <div className="border-border/70 text-muted-foreground/80 flex min-h-[6rem] items-center justify-center rounded-lg border border-dashed px-4 text-center text-xs">
-            Drop tasks here
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      {COLUMN_ORDER.map((status) => (
+        <section key={status} className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span
+              aria-hidden
+              className={cn("inline-block size-2 rounded-full", COLUMN_META[status].accent)}
+            />
+            <h2 className="font-heading text-sm font-medium tracking-tight">
+              {COLUMN_META[status].label}
+            </h2>
+            <Skeleton className="h-4 w-6 rounded-full" />
           </div>
-        ) : (
-          tasks.map((task) => (
-            <div key={task.id} className="bg-card ring-foreground/10 rounded-lg p-3 text-sm ring-1">
-              {task.title}
-            </div>
-          ))
-        )}
-      </div>
-    </section>
+          <div className="space-y-3">
+            <Skeleton className="h-24 w-full rounded-lg" />
+            <Skeleton className="h-24 w-full rounded-lg" />
+          </div>
+        </section>
+      ))}
+    </div>
   );
 }
 
