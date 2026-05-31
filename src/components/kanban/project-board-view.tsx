@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ChevronLeft, FileQuestion, MoreVertical, Pencil, Sparkles, Trash2 } from "lucide-react";
+import { ChevronLeft, FileQuestion, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppHeader } from "@/components/layout/app-header";
+import { MagicGenerateButton } from "@/components/ai/magic-generate-button";
 import { Board, BoardColumnsSkeleton } from "@/components/kanban/board";
 import { ProjectDialog } from "@/components/projects/project-dialog";
 import {
@@ -84,12 +85,6 @@ export function ProjectBoardView({ projectId }: ProjectBoardViewProps) {
 
   const current = project.data;
 
-  function handleMagicGenerate() {
-    toast.info("Magic Generate ships in the next chunk.", {
-      description: "Hook this up to /api/ai/generate-tasks once Task 17 lands.",
-    });
-  }
-
   function handleEditOpenChange(open: boolean) {
     setEditOpen(open);
   }
@@ -127,10 +122,7 @@ export function ProjectBoardView({ projectId }: ProjectBoardViewProps) {
           ) : null}
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={handleMagicGenerate} variant="secondary">
-            <Sparkles />
-            Magic Generate
-          </Button>
+          <MagicGenerateButton project={current} />
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
