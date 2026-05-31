@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, Loader2, Trash2 } from "lucide-react";
+import { Check, Circle, CircleCheckBig, CornerUpLeft, Loader2, Plus, Trash2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -43,7 +43,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { useDeleteTask, useTasks, useUpdateTask } from "@/hooks/use-tasks";
+import { useCreateTask, useDeleteTask, useTasks, useUpdateTask } from "@/hooks/use-tasks";
 import { CATEGORY_META, CATEGORY_OPTIONS } from "@/lib/categories";
 import { COLUMN_META, COLUMN_ORDER } from "@/lib/constants";
 import { TASK_CATEGORIES, TASK_STATUSES } from "@/lib/schemas";
@@ -114,6 +114,7 @@ export function TaskDetailPanel({
         {task ? (
           <TaskDetailBody
             task={task}
+            allTasks={tasks.data ?? []}
             projectId={projectId}
             onClose={() => onOpenChange(false)}
             onSelectTask={onSelectTask}
@@ -128,14 +129,23 @@ export function TaskDetailPanel({
 
 interface TaskDetailBodyProps {
   task: Task;
+  allTasks: Task[];
   projectId: string;
   onClose: () => void;
   onSelectTask: (taskId: string) => void;
 }
 
-function TaskDetailBody({ task, projectId, onClose }: TaskDetailBodyProps) {
+function TaskDetailBody({ task, allTasks, projectId, onClose, onSelectTask }: TaskDetailBodyProps) {
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
+  const parentTask = useMemo(
+    () => (task.parentTaskId ? allTasks.find((t) => t.id === task.parentTaskId) : undefined),
+    [allTasks, task.parentTaskId]
+  );
+  const subtasks = useMemo(
+    () => allTasks.filter((t) => t.parentTaskId === task.id).sort((a, b) => a.order - b.order),
+    [allTasks, task.id]
+  );
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -227,7 +237,20 @@ function TaskDetailBody({ task, projectId, onClose }: TaskDetailBodyProps) {
         <SheetDescription>Edits save automatically.</SheetDescription>
       </SheetHeader>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div className="flex-1 space-y-6 overflow-y-auto px-4 py-4">
+        {parentTask ? (
+          <button
+            type="button"
+            onClick={() => onSelectTask(parentTask.id)}
+            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 flex w-full items-start gap-2 rounded-md px-1 py-1 text-left text-xs transition-colors outline-none focus-visible:ring-2"
+          >
+            <CornerUpLeft className="mt-px size-3.5 shrink-0" aria-hidden />
+            <span className="min-w-0">
+              <span className="block font-medium tracking-wide uppercase">Parent</span>
+              <span className="text-foreground line-clamp-1">{parentTask.title}</span>
+            </span>
+          </button>
+        ) : null}
         <Form {...form}>
           <form
             className="grid gap-4"
@@ -347,6 +370,12 @@ function TaskDetailBody({ task, projectId, onClose }: TaskDetailBodyProps) {
             </div>
           </form>
         </Form>
+        <SubtaskSection
+          parentTask={task}
+          subtasks={subtasks}
+          projectId={projectId}
+          onSelectTask={onSelectTask}
+        />
       </div>
 
       <div className="border-t p-4">
@@ -389,6 +418,160 @@ function TaskDetailBody({ task, projectId, onClose }: TaskDetailBodyProps) {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+interface SubtaskSectionProps {
+  parentTask: Task;
+  subtasks: Task[];
+  projectId: string;
+  onSelectTask: (taskId: string) => void;
+}
+
+function SubtaskSection({ parentTask, subtasks, projectId, onSelectTask }: SubtaskSectionProps) {
+  const [adding, setAdding] = useState(false);
+  return (
+    <section aria-label="Sub-tasks" className="space-y-2">
+      <header className="flex items-center justify-between gap-2">
+        <h3 className="text-foreground text-xs font-semibold tracking-wide uppercase">Sub-tasks</h3>
+        <span className="text-muted-foreground text-xs tabular-nums">{subtasks.length}</span>
+      </header>
+      <ul className="space-y-1">
+        {subtasks.map((sub) => (
+          <SubtaskRow key={sub.id} task={sub} projectId={projectId} onOpen={onSelectTask} />
+        ))}
+      </ul>
+      {adding ? (
+        <AddSubtaskInline
+          parentTask={parentTask}
+          projectId={projectId}
+          onDone={() => setAdding(false)}
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          className="border-border/70 text-muted-foreground/90 hover:border-foreground/30 hover:bg-muted hover:text-foreground focus-visible:ring-ring/50 inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-md border border-dashed text-xs font-medium transition-colors outline-none focus-visible:ring-2"
+        >
+          <Plus className="size-3.5" aria-hidden />
+          Add sub-task
+        </button>
+      )}
+    </section>
+  );
+}
+
+interface SubtaskRowProps {
+  task: Task;
+  projectId: string;
+  onOpen: (taskId: string) => void;
+}
+
+function SubtaskRow({ task, projectId, onOpen }: SubtaskRowProps) {
+  const updateTask = useUpdateTask();
+  const done = task.status === "done";
+
+  function toggleDone() {
+    const nextStatus: TaskStatus = done ? "todo" : "done";
+    updateTask.mutate(
+      { id: task.id, projectId, patch: { status: nextStatus } },
+      {
+        onError: (err) => toast.error("Couldn't update sub-task", { description: err.message }),
+      }
+    );
+  }
+
+  return (
+    <li className="hover:bg-muted/60 group/sub flex items-center gap-2 rounded-md px-1 py-1">
+      <button
+        type="button"
+        onClick={toggleDone}
+        aria-label={done ? "Mark as not done" : "Mark as done"}
+        aria-pressed={done}
+        className="text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 inline-flex size-5 shrink-0 items-center justify-center rounded-full outline-none focus-visible:ring-2"
+      >
+        {done ? (
+          <CircleCheckBig className="size-4 text-emerald-600 dark:text-emerald-400" aria-hidden />
+        ) : (
+          <Circle className="size-4" aria-hidden />
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={() => onOpen(task.id)}
+        className={cn(
+          "text-foreground focus-visible:ring-ring/50 min-w-0 flex-1 truncate rounded-sm text-left text-sm outline-none focus-visible:ring-2",
+          done && "text-muted-foreground line-through"
+        )}
+      >
+        {task.title}
+      </button>
+    </li>
+  );
+}
+
+interface AddSubtaskInlineProps {
+  parentTask: Task;
+  projectId: string;
+  onDone: () => void;
+}
+
+function AddSubtaskInline({ parentTask, projectId, onDone }: AddSubtaskInlineProps) {
+  const [title, setTitle] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const createTask = useCreateTask();
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  function submit() {
+    const trimmed = title.trim();
+    if (!trimmed) {
+      onDone();
+      return;
+    }
+    createTask.mutate(
+      {
+        projectId,
+        parentTaskId: parentTask.id,
+        title: trimmed,
+        status: "todo",
+        category: null,
+        description: undefined,
+      },
+      {
+        onError: (err) => toast.error("Couldn't add sub-task", { description: err.message }),
+      }
+    );
+    setTitle("");
+    onDone();
+  }
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        submit();
+      }}
+    >
+      <Input
+        ref={inputRef}
+        value={title}
+        onChange={(event) => setTitle(event.target.value)}
+        onBlur={() => submit()}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            setTitle("");
+            onDone();
+          }
+        }}
+        placeholder="Sub-task title…"
+        maxLength={200}
+        aria-label="New sub-task title"
+      />
+    </form>
   );
 }
 
