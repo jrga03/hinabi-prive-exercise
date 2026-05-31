@@ -128,3 +128,57 @@ function closeAndReset() {
 ```
 
 **Lesson:** Whenever a model proposes `useEffect(() => { if (!propX) setLocal(initial) }, [propX])`, treat it as a smell. Either inline the reset in the handler that flips `propX`, or pass a `key` to force a remount. The "synchronize derived state in an effect" pattern dates a model's training data — modern React explicitly discourages it (rules-of-hooks added `set-state-in-effect` as a lint error). The fix is almost always to push state ownership up to the same handler, not down into an observer.
+
+---
+
+## 2026-05-31 - Invented Tailwind class `-inset-l-3`
+
+**Tool:** Claude Code (terminal CLI)
+**Model:** Opus 4.7
+**Task:** Extend the sub-task circle toggle's pointer hit area to 44 × 44 on mobile without changing the visible icon size.
+**Prompt:** Internal — Chunk H Task 28, "touch targets ≥ 44px on every clickable", initial attempt used a `:before` pseudo-element to extend the hit area only on the left + vertical axis (so the rightward extension wouldn't overlap the adjacent task-title button's hit area).
+**Generated output:**
+
+```tsx
+className =
+  "... before:absolute before:content-[''] max-sm:before:-inset-y-3 max-sm:before:-inset-l-3";
+```
+
+**Bug:** `-inset-l-3` is not a valid Tailwind utility. Tailwind has `-inset-x-N` / `-inset-y-N` (both sides) and individual `-left-N`, `-right-N`, `-top-N`, `-bottom-N` — but **no** `-inset-l-N` / `-inset-r-N`. Tailwind silently dropped it from the generated CSS; lint and typecheck passed (the JSX is just a string). Visually nothing extended on mobile.
+**Fix:** Abandoned the asymmetric pseudo-element approach (the right-edge overlap with the adjacent title button was a UX risk anyway). Scaled the toggle to `size-5 max-sm:size-11` and the inner icon to `size-4 max-sm:size-5`, then matched the row title button with `max-sm:min-h-11 max-sm:py-2` so both touch targets fill the row symmetrically.
+
+```tsx
+<button className="size-5 max-sm:size-11 ... ...">
+  {done ? (
+    <CircleCheckBig className="size-4 max-sm:size-5 ..." />
+  ) : (
+    <Circle className="size-4 max-sm:size-5" />
+  )}
+</button>
+```
+
+**Lesson:** Tailwind's directional inset utilities are `-{side}-{n}` (e.g., `-left-3`), not `-inset-{side}-{n}`. When extending a pointer-hit area asymmetrically, prefer the individual side classes and verify the generated CSS in the browser before assuming the layout changed — Tailwind silently drops unknown utilities, so lint won't catch the typo. Better still, when the extension would overlap with a sibling's hit area, bump the visible target on mobile instead of cheating with a pseudo-element.
+
+---
+
+## 2026-05-31 - shadcn default dark `--primary` failed AA contrast on the New project button
+
+**Tool:** Claude Code (terminal CLI)
+**Model:** Opus 4.7
+**Task:** Chunk H Task 29 — axe-core a11y scan across `/` and `/projects/:id` in light + dark mode.
+**Prompt:** Internal — added an axe-core injection step to the Playwright responsive smoke and ran on both themes.
+**Generated output:** axe reported one serious violation in dark mode: `color-contrast` on `.text-primary-foreground` (the "New project" button label). The default shadcn dark theme ships `--primary: oklch(0.625 0.281 293.009)` (lighter violet) against `--primary-foreground: oklch(0.985 0 0)` (near-white). Contrast ratio computed at ~3.4 : 1 — fails WCAG AA 4.5 : 1 for normal text.
+**Bug:** Inherited the dark theme palette wholesale from the shadcn canary scaffold without checking that the _lighter_ dark-mode primary (a common dark-theme convention so the button "pops" against the dark background) still meets AA with the near-white label. Light theme passed (`oklch(0.541)` vs `oklch(0.985)` ≈ 5.4 : 1).
+**Fix:** Reduced the dark-mode `--primary` lightness from `0.625` to `0.541` (same as light theme), and matched `--ring` and `--sidebar-primary*` so focus rings stay consistent. Re-ran axe — both themes now report 0 violations on both routes.
+
+```css
+.dark {
+  --primary: oklch(0.541 0.281 293.009);
+  /* --primary-foreground unchanged at oklch(0.985 0 0) */
+  --ring: oklch(0.541 0.281 293.009);
+  --sidebar-primary: oklch(0.541 0.281 293.009);
+  --sidebar-ring: oklch(0.541 0.281 293.009);
+}
+```
+
+**Lesson:** Default shadcn dark-mode palettes are tuned for aesthetic punch, not WCAG. Always run axe (or a contrast checker) against _both_ themes before shipping. The trap is the "lighter primary in dark mode for visual energy" convention — it looks great but tends to fail AA against white text. Either darken the primary back to the light-theme value (consistent, safer) or swap to a darker foreground; don't trust the scaffold defaults.
