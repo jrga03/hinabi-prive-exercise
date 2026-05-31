@@ -11,6 +11,16 @@ export interface MagicGenerateVars {
   projectTitle: string;
   projectDescription?: string;
   context?: string;
+  signal?: AbortSignal;
+}
+
+export class GenerateTasksError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "GenerateTasksError";
+    this.status = status;
+  }
 }
 
 export function useMagicGenerate(): UseMutationResult<Task[], Error, MagicGenerateVars> {
@@ -25,6 +35,7 @@ export function useMagicGenerate(): UseMutationResult<Task[], Error, MagicGenera
           projectDescription: vars.projectDescription,
           context: vars.context,
         }),
+        signal: vars.signal,
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
@@ -32,11 +43,11 @@ export function useMagicGenerate(): UseMutationResult<Task[], Error, MagicGenera
           data && typeof (data as { error?: unknown }).error === "string"
             ? (data as { error: string }).error
             : "AI request failed.";
-        throw new Error(message);
+        throw new GenerateTasksError(res.status, message);
       }
       const parsed = AIResponseSchema.safeParse(data);
       if (!parsed.success) {
-        throw new Error("AI returned unexpected output. Try again.");
+        throw new GenerateTasksError(502, "AI returned unexpected output. Try again.");
       }
       const inputs: CreateTaskInput[] = parsed.data.tasks.map((task) => ({
         projectId: vars.projectId,
