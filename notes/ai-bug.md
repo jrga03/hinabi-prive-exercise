@@ -54,7 +54,7 @@ create(input: CreateProjectInput): Promise<Project> {
 }
 ```
 
-**Bug:** `ProjectSchema.parse(...)` throws synchronously *before* `Promise.resolve(...)` runs, so the function throws synchronously rather than returning a rejected promise. The test sees an unhandled throw at `repo.create(...)` and the `.rejects` matcher never engages. 2 of 19 Vitest cases failed with the actual ZodError surfaced as a test runner error, not a rejection.
+**Bug:** `ProjectSchema.parse(...)` throws synchronously _before_ `Promise.resolve(...)` runs, so the function throws synchronously rather than returning a rejected promise. The test sees an unhandled throw at `repo.create(...)` and the `.rejects` matcher never engages. 2 of 19 Vitest cases failed with the actual ZodError surfaced as a test runner error, not a rejection.
 **Fix:** Converted every repository method from `methodName(): Promise<X> { … return Promise.resolve(x) }` to `async methodName(): Promise<X> { … return x }`. Async functions auto-convert sync throws into rejected promises, so the failing tests passed without modification and the public contract is unchanged.
 **Lesson:** "Use Promise.resolve to keep the contract" is correct for value-returning paths but doesn't cover throw paths. Prefer `async` on every repository method — it's a one-keyword change that handles both. When the prompt says "must return a Promise," translate that to "must be an async function" unless there's a specific reason not to.
 
@@ -70,7 +70,7 @@ create(input: CreateProjectInput): Promise<Project> {
 
 ```tsx
 function handleDelete(_project: Project) {
-  toast.info("Delete confirmation wires up next")
+  toast.info("Delete confirmation wires up next");
 }
 ```
 

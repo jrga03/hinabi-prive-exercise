@@ -1,13 +1,13 @@
-import { z } from 'zod'
+import { z } from "zod";
 
-export const TASK_STATUSES = ['todo', 'in_progress', 'done'] as const
+export const TASK_STATUSES = ["todo", "in_progress", "done"] as const;
 export const TASK_CATEGORIES = [
-  'strategy',
-  'design',
-  'engineering',
-  'marketing',
-  'operations',
-] as const
+  "strategy",
+  "design",
+  "engineering",
+  "marketing",
+  "operations",
+] as const;
 
 export const ProjectSchema = z.object({
   id: z.uuid(),
@@ -15,7 +15,7 @@ export const ProjectSchema = z.object({
   description: z.string().max(500).optional(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
-})
+});
 
 export const TaskSchema = z.object({
   id: z.uuid(),
@@ -28,7 +28,7 @@ export const TaskSchema = z.object({
   order: z.number().int().nonnegative(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
-})
+});
 
-export const ProjectsArraySchema = z.array(ProjectSchema)
-export const TasksArraySchema = z.array(TaskSchema)
+export const ProjectsArraySchema = z.array(ProjectSchema);
+export const TasksArraySchema = z.array(TaskSchema);

@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import { useEffect } from "react"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { toast } from "sonner"
-import { z } from "zod"
+import { useEffect } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -14,7 +14,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -23,12 +23,12 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { useCreateProject, useUpdateProject } from "@/hooks/use-projects"
-import { ProjectSchema } from "@/lib/schemas"
-import type { Project } from "@/lib/types"
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useCreateProject, useUpdateProject } from "@/hooks/use-projects";
+import { ProjectSchema } from "@/lib/schemas";
+import type { Project } from "@/lib/types";
 
 export const ProjectFormSchema = ProjectSchema.pick({
   title: true,
@@ -36,63 +36,58 @@ export const ProjectFormSchema = ProjectSchema.pick({
 }).extend({
   title: z.string().min(1, "Title is required").max(120, "Title is too long"),
   description: z.string().max(500, "Description is too long").optional(),
-})
+});
 
-export type ProjectFormValues = z.infer<typeof ProjectFormSchema>
+export type ProjectFormValues = z.infer<typeof ProjectFormSchema>;
 
 interface ProjectDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  mode: "create" | "edit"
-  initialData?: Project
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  mode: "create" | "edit";
+  initialData?: Project;
 }
 
-const EMPTY_VALUES: ProjectFormValues = { title: "", description: "" }
+const EMPTY_VALUES: ProjectFormValues = { title: "", description: "" };
 
-export function ProjectDialog({
-  open,
-  onOpenChange,
-  mode,
-  initialData,
-}: ProjectDialogProps) {
-  const createProject = useCreateProject()
-  const updateProject = useUpdateProject()
+export function ProjectDialog({ open, onOpenChange, mode, initialData }: ProjectDialogProps) {
+  const createProject = useCreateProject();
+  const updateProject = useUpdateProject();
 
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(ProjectFormSchema),
     defaultValues: initialData
       ? { title: initialData.title, description: initialData.description ?? "" }
       : EMPTY_VALUES,
-  })
+  });
 
   useEffect(() => {
-    if (!open) return
+    if (!open) return;
     form.reset(
       initialData
         ? { title: initialData.title, description: initialData.description ?? "" }
-        : EMPTY_VALUES,
-    )
-  }, [open, initialData, form])
+        : EMPTY_VALUES
+    );
+  }, [open, initialData, form]);
 
-  const isSubmitting = createProject.isPending || updateProject.isPending
+  const isSubmitting = createProject.isPending || updateProject.isPending;
 
   async function onSubmit(values: ProjectFormValues) {
     const payload = {
       title: values.title.trim(),
       description: values.description?.trim() || undefined,
-    }
+    };
     try {
       if (mode === "edit" && initialData) {
-        await updateProject.mutateAsync({ id: initialData.id, patch: payload })
-        toast.success("Project updated")
+        await updateProject.mutateAsync({ id: initialData.id, patch: payload });
+        toast.success("Project updated");
       } else {
-        await createProject.mutateAsync(payload)
-        toast.success("Project created")
+        await createProject.mutateAsync(payload);
+        toast.success("Project created");
       }
-      onOpenChange(false)
+      onOpenChange(false);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Something went wrong"
-      form.setError("root", { type: "server", message })
+      const message = err instanceof Error ? err.message : "Something went wrong";
+      form.setError("root", { type: "server", message });
     }
   }
 
@@ -100,9 +95,7 @@ export function ProjectDialog({
     <Dialog open={open} onOpenChange={(next) => onOpenChange(next)}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {mode === "edit" ? "Edit project" : "Create a new project"}
-          </DialogTitle>
+          <DialogTitle>{mode === "edit" ? "Edit project" : "Create a new project"}</DialogTitle>
           <DialogDescription>
             {mode === "edit"
               ? "Rename or rewrite the description. Tasks are unaffected."
@@ -111,11 +104,7 @@ export function ProjectDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="grid gap-4"
-            noValidate
-          >
+          <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4" noValidate>
             <FormField
               control={form.control}
               name="title"
@@ -149,15 +138,13 @@ export function ProjectDialog({
                       value={field.value ?? ""}
                     />
                   </FormControl>
-                  <FormDescription>
-                    Up to 500 characters.
-                  </FormDescription>
+                  <FormDescription>Up to 500 characters.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
             {form.formState.errors.root ? (
-              <p className="text-sm text-destructive" role="alert">
+              <p className="text-destructive text-sm" role="alert">
                 {form.formState.errors.root.message}
               </p>
             ) : null}
@@ -171,16 +158,12 @@ export function ProjectDialog({
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting
-                  ? "Saving…"
-                  : mode === "edit"
-                    ? "Save changes"
-                    : "Create project"}
+                {isSubmitting ? "Saving…" : mode === "edit" ? "Save changes" : "Create project"}
               </Button>
             </DialogFooter>
           </form>
         </Form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

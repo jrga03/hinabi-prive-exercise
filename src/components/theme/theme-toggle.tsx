@@ -1,29 +1,25 @@
-"use client"
+"use client";
 
-import { Moon, Sun } from "lucide-react"
-import { useTheme } from "next-themes"
-import { useSyncExternalStore } from "react"
+import { Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
+import { useSyncExternalStore } from "react";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 
-const subscribe = () => () => {}
-const getSnapshot = () => true
-const getServerSnapshot = () => false
+const subscribe = () => () => {};
+const getSnapshot = () => true;
+const getServerSnapshot = () => false;
 
 export function ThemeToggle() {
-  const { resolvedTheme, setTheme } = useTheme()
-  const isMounted = useSyncExternalStore(
-    subscribe,
-    getSnapshot,
-    getServerSnapshot,
-  )
+  const { resolvedTheme, setTheme } = useTheme();
+  const isMounted = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
-  const isDark = isMounted && resolvedTheme === "dark"
+  const isDark = isMounted && resolvedTheme === "dark";
   const label = isMounted
     ? isDark
       ? "Switch to light mode"
       : "Switch to dark mode"
-    : "Toggle theme"
+    : "Toggle theme";
 
   return (
     <Button
@@ -42,5 +38,5 @@ export function ThemeToggle() {
         aria-hidden
       />
     </Button>
-  )
+  );
 }

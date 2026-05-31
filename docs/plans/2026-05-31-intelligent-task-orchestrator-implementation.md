@@ -3,6 +3,7 @@
 > **For the engineer (you):** Execute this plan in Cursor's Composer + Chat with Claude as the model. Many tasks include a ready-to-paste prompt. Always read the generated code before accepting — the assessment specifically asks you to document a bug Claude introduced and how you fixed it.
 >
 > **Companion documents:**
+>
 > - Design doc: `docs/plans/2026-05-31-intelligent-task-orchestrator-design.md`
 > - Cursor prompt library: section 14 of this file
 
@@ -164,10 +165,10 @@ Implementation plan: docs/plans/2026-05-31-intelligent-task-orchestrator-impleme
 
 **Step 3.3.** Add env vars to Vercel dashboard (Settings → Environment Variables):
 
-| Name | Value | Environments |
-|---|---|---|
-| `GOOGLE_GENERATIVE_AI_API_KEY` | (from AI Studio) | All |
-| `NEXT_PUBLIC_BACKEND` | `local` | All |
+| Name                           | Value            | Environments |
+| ------------------------------ | ---------------- | ------------ |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | (from AI Studio) | All          |
+| `NEXT_PUBLIC_BACKEND`          | `local`          | All          |
 
 **Step 3.4.** Create `.env.local` (gitignored already):
 
@@ -195,9 +196,9 @@ Verify the redeploy completes and the README change is visible on Vercel.
 **Step 4.1.** Add Inter via `next/font` in `src/app/layout.tsx`:
 
 ```tsx
-import { Inter } from 'next/font/google'
+import { Inter } from "next/font/google";
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 // in body className: inter.variable + 'font-sans antialiased'
 ```
@@ -211,24 +212,24 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 **Step 4.5.** Create `src/components/theme/theme-toggle.tsx`:
 
 ```tsx
-'use client'
-import { Moon, Sun } from 'lucide-react'
-import { useTheme } from 'next-themes'
-import { Button } from '@/components/ui/button'
+"use client";
+import { Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
+import { Button } from "@/components/ui/button";
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme } = useTheme();
   return (
     <Button
       variant="ghost"
       size="icon"
-      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
       aria-label="Toggle theme"
     >
       <Sun className="size-4 dark:hidden" />
       <Moon className="hidden size-4 dark:block" />
     </Button>
-  )
+  );
 }
 ```
 
@@ -259,11 +260,11 @@ git push
 **Step 5.2.** Write `types.ts` exporting inferred types. Also export input types:
 
 ```ts
-export type CreateProjectInput = Omit<Project, 'id' | 'createdAt' | 'updatedAt'>
-export type UpdateProjectInput = Partial<Pick<Project, 'title' | 'description'>>
-export type CreateTaskInput = Omit<Task, 'id' | 'order' | 'createdAt' | 'updatedAt'>
-export type TaskStatus = z.infer<typeof TaskSchema.shape.status>
-export type TaskCategory = z.infer<typeof TaskSchema.shape.category>
+export type CreateProjectInput = Omit<Project, "id" | "createdAt" | "updatedAt">;
+export type UpdateProjectInput = Partial<Pick<Project, "title" | "description">>;
+export type CreateTaskInput = Omit<Task, "id" | "order" | "createdAt" | "updatedAt">;
+export type TaskStatus = z.infer<typeof TaskSchema.shape.status>;
+export type TaskCategory = z.infer<typeof TaskSchema.shape.category>;
 ```
 
 **Step 5.3.** Write `categories.ts` with `CATEGORY_META` per Section 5.3.
@@ -272,15 +273,15 @@ export type TaskCategory = z.infer<typeof TaskSchema.shape.category>
 
 ```ts
 export const STORAGE_KEYS = {
-  projects: 'tio:projects',
-  tasks: 'tio:tasks',
-} as const
+  projects: "tio:projects",
+  tasks: "tio:tasks",
+} as const;
 
 export const COLUMN_META = {
-  todo:        { label: 'To Do',       accent: 'bg-zinc-400 dark:bg-zinc-600' },
-  in_progress: { label: 'In Progress', accent: 'bg-violet-500' },
-  done:        { label: 'Done',        accent: 'bg-emerald-500' },
-} as const
+  todo: { label: "To Do", accent: "bg-zinc-400 dark:bg-zinc-600" },
+  in_progress: { label: "In Progress", accent: "bg-violet-500" },
+  done: { label: "Done", accent: "bg-emerald-500" },
+} as const;
 ```
 
 **Step 5.5.** Commit: `feat(types): add zod schemas, types, and category tokens`.
@@ -296,6 +297,7 @@ export const COLUMN_META = {
 **Step 6.1.** Write `types.ts` with `ProjectRepository` and `TaskRepository` interfaces (Section 4.2 of design doc).
 
 **Step 6.2.** Use the prompt in §14.2 to generate `local-storage.ts`. Critical correctness points to verify in the output:
+
 - Every method returns a Promise (use `Promise.resolve`)
 - Reads use `safeParse` and return `[]` on failure
 - Writes happen atomically (serialize whole collection per call)
@@ -308,17 +310,17 @@ export const COLUMN_META = {
 **Step 6.3.** Write `index.ts`:
 
 ```ts
-import { LocalStorageProjectRepository, LocalStorageTaskRepository } from './local-storage'
-import type { ProjectRepository, TaskRepository } from './types'
+import { LocalStorageProjectRepository, LocalStorageTaskRepository } from "./local-storage";
+import type { ProjectRepository, TaskRepository } from "./types";
 
-const backend = process.env.NEXT_PUBLIC_BACKEND ?? 'local'
+const backend = process.env.NEXT_PUBLIC_BACKEND ?? "local";
 
 export const projectRepo: ProjectRepository =
-  backend === 'local' ? new LocalStorageProjectRepository() : new LocalStorageProjectRepository()
+  backend === "local" ? new LocalStorageProjectRepository() : new LocalStorageProjectRepository();
 // TODO: when adding supabase, switch on backend === 'supabase'
 
 export const taskRepo: TaskRepository =
-  backend === 'local' ? new LocalStorageTaskRepository() : new LocalStorageTaskRepository()
+  backend === "local" ? new LocalStorageTaskRepository() : new LocalStorageTaskRepository();
 ```
 
 **Step 6.4.** Commit: `feat(data): add repository interfaces and localStorage implementation`.
@@ -334,35 +336,36 @@ export const taskRepo: TaskRepository =
 **Step 7.1.** Create `vitest.config.ts`:
 
 ```ts
-import { defineConfig } from 'vitest/config'
-import react from '@vitejs/plugin-react'
-import path from 'node:path'
+import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
+import path from "node:path";
 
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
+    environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"],
     globals: true,
   },
   resolve: {
-    alias: { '@': path.resolve(__dirname, './src') },
+    alias: { "@": path.resolve(__dirname, "./src") },
   },
-})
+});
 ```
 
 **Step 7.2.** Create `src/test/setup.ts`:
 
 ```ts
-import '@testing-library/jest-dom/vitest'
-import { beforeEach } from 'vitest'
+import "@testing-library/jest-dom/vitest";
+import { beforeEach } from "vitest";
 
 beforeEach(() => {
-  localStorage.clear()
-})
+  localStorage.clear();
+});
 ```
 
 **Step 7.3.** Use prompt §14.3 to generate `local-storage.test.ts`. Required coverage:
+
 - Create/list/get/update/delete for projects
 - Create/listByProject/update for tasks
 - Cascade delete (project → tasks; task → children)
@@ -387,27 +390,31 @@ beforeEach(() => {
 **Step 8.1.** Create `providers.tsx`:
 
 ```tsx
-'use client'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import { useState } from 'react'
+"use client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { useState } from "react";
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [qc] = useState(() => new QueryClient({
-    defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
-  }))
+  const [qc] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
+      })
+  );
   return (
     <QueryClientProvider client={qc}>
       {children}
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
-  )
+  );
 }
 ```
 
 **Step 8.2.** Wrap children in `layout.tsx`: `<ThemeProvider><Providers>{children}</Providers></ThemeProvider>`.
 
 **Step 8.3.** Use prompt §14.4 to generate `use-projects.ts` and `use-tasks.ts`. The hooks must:
+
 - Use stable query keys (`['projects']`, `['tasks', 'project', projectId]`)
 - Use `useMutation` with `onMutate` (optimistic update), `onError` (rollback), `onSettled` (invalidate)
 - Export typed hooks: `useProjects`, `useProject(id)`, `useCreateProject`, `useUpdateProject`, `useDeleteProject`, `useTasks(projectId)`, `useCreateTask`, `useCreateTasksBulk`, `useUpdateTask`, `useReorderTasks`, `useDeleteTask`
@@ -441,6 +448,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 **Files:** `src/components/projects/project-dialog.tsx`.
 
 **Step 10.1.** Use prompt §14.6 to generate `ProjectDialog`. Required features:
+
 - Controlled `open`/`onOpenChange` props
 - `mode: 'create' | 'edit'` + optional `initialData`
 - RHF with `zodResolver` validating against a `ProjectFormSchema` derived from `ProjectSchema.pick({ title: true, description: true })`
@@ -516,6 +524,7 @@ Take a 30-minute break here. Hydrate. Re-read what you've built.
 **Files:** `src/components/kanban/board.tsx` (new wrapper).
 
 **Step 14.1.** Use prompt §14.7 (the big one) to generate the dnd-kit wiring. Critical requirements:
+
 - `DndContext` with `PointerSensor` (activation distance 4) and `KeyboardSensor` (`sortableKeyboardCoordinates`)
 - `SortableContext` per column with `verticalListSortingStrategy`
 - `useSortable` on each `TaskCard`
@@ -559,6 +568,7 @@ Take a 30-minute break here. Hydrate. Re-read what you've built.
 **Step 16.2.** Write `schema.ts` with `RequestSchema` and `AIResponseSchema` per Section 7.1.
 
 **Step 16.3.** Use prompt §14.8 to generate `route.ts`. Critical points to verify:
+
 - `runtime = 'nodejs'` (Vercel AI SDK is fine on Node)
 - Uses `generateObject` not `generateText`
 - Wraps the AI call in try/catch and maps to typed error responses
@@ -602,6 +612,7 @@ Expect a JSON response with 5 tasks.
 You should have: deployed CRUD app with Kanban board, drag-and-drop, and working AI generation. **Push everything.** Sleep.
 
 If significantly behind, evaluate cuts now (don't wait for Day 2):
+
 - Behind by < 2 hrs: skip nothing. You'll catch up Day 2 morning.
 - Behind by 2-4 hrs: drop Framer Motion entirely, use CSS-only transitions.
 - Behind by > 4 hrs: drop sub-task hierarchy (`parentTaskId` becomes vestigial; skip hierarchy UI). Adjust Task 19 accordingly.
@@ -653,6 +664,7 @@ If significantly behind, evaluate cuts now (don't wait for Day 2):
 **Files:** `src/app/api/ai/generate-tasks/route.test.ts`.
 
 **Step 20.1.** Use prompt §14.9 to generate the test. Mock `generateObject` via `vi.mock('ai', ...)`. Cover:
+
 - Valid request returns 200 + parsed body
 - Invalid request (missing title) returns 400
 - `generateObject` throws → returns 502
@@ -725,6 +737,7 @@ If significantly behind, evaluate cuts now (don't wait for Day 2):
 ### Task 25: Polish all empty states (~45 min)
 
 **Step 25.1.** Audit every "no data" state. Per Section 6.5 of design doc, design each:
+
 - `/` with no projects
 - Each column with no tasks (separate copy per column)
 - Detail panel with no sub-tasks
@@ -825,20 +838,21 @@ If significantly behind, evaluate cuts now (don't wait for Day 2):
 **Step 31.2.** Create `playwright.config.ts`:
 
 ```ts
-import { defineConfig } from '@playwright/test'
+import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
-  testDir: './tests/e2e',
-  use: { baseURL: 'http://localhost:3000', trace: 'on-first-retry' },
+  testDir: "./tests/e2e",
+  use: { baseURL: "http://localhost:3000", trace: "on-first-retry" },
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
+    command: "npm run dev",
+    url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
   },
-})
+});
 ```
 
 **Step 31.3.** Use prompt §14.10 to generate the happy-path spec. Coverage:
+
 - Visit `/`
 - Create a project ("E2E Test Project")
 - Navigate to its board
@@ -896,6 +910,7 @@ Required content per the brief:
 ## A specific instance of buggy AI code + the fix
 
 [Pull from notes/ai-bug.md. Required structure:
+
 1. The prompt I gave Claude
 2. The buggy output (code snippet)
 3. What was wrong (what behavior broke; ideally a screenshot if visual)
@@ -904,19 +919,19 @@ Required content per the brief:
 
 ## Efficiency metric
 
-| Task | Estimated time without AI | Actual time with AI | Multiplier |
-|---|---|---|---|
-| Project scaffold + tooling config | 2 hr | 30 min | 4x |
-| Data layer + Zod schemas | 3 hr | 1.5 hr | 2x |
-| Repository pattern + tests | 4 hr | 2 hr | 2x |
-| Kanban + dnd-kit integration | 6 hr | 4 hr | 1.5x |
-| AI route handler + dialog | 3 hr | 1.5 hr | 2x |
-| Task detail + sub-task UI | 4 hr | 2.5 hr | 1.6x |
-| Polish (empty/error/loading) | 6 hr | 3.5 hr | 1.7x |
-| Responsive + a11y + perf | 4 hr | 3 hr | 1.3x |
-| Tests (Vitest + Playwright) | 4 hr | 2.5 hr | 1.6x |
-| Docs (README + this doc) | 2 hr | 1 hr | 2x |
-| **Total** | **~38 hrs** | **~22 hrs** | **~1.7x** |
+| Task                              | Estimated time without AI | Actual time with AI | Multiplier |
+| --------------------------------- | ------------------------- | ------------------- | ---------- |
+| Project scaffold + tooling config | 2 hr                      | 30 min              | 4x         |
+| Data layer + Zod schemas          | 3 hr                      | 1.5 hr              | 2x         |
+| Repository pattern + tests        | 4 hr                      | 2 hr                | 2x         |
+| Kanban + dnd-kit integration      | 6 hr                      | 4 hr                | 1.5x       |
+| AI route handler + dialog         | 3 hr                      | 1.5 hr              | 2x         |
+| Task detail + sub-task UI         | 4 hr                      | 2.5 hr              | 1.6x       |
+| Polish (empty/error/loading)      | 6 hr                      | 3.5 hr              | 1.7x       |
+| Responsive + a11y + perf          | 4 hr                      | 3 hr                | 1.3x       |
+| Tests (Vitest + Playwright)       | 4 hr                      | 2.5 hr              | 1.6x       |
+| Docs (README + this doc)          | 2 hr                      | 1 hr                | 2x         |
+| **Total**                         | **~38 hrs**               | **~22 hrs**         | **~1.7x**  |
 
 (Replace these with your real numbers — review your commit timestamps for actuals.)
 
@@ -941,7 +956,7 @@ Required content per the brief:
 
 **File:** `README.md` at repo root.
 
-```markdown
+````markdown
 # The Intelligent Task Orchestrator
 
 A Kanban-style project and task manager with AI-assisted sub-task generation, built for the Hinabi Privé Front-End Developer assessment.
@@ -979,28 +994,30 @@ cp .env.example .env.local
 # fill in GOOGLE_GENERATIVE_AI_API_KEY (get free key at aistudio.google.com)
 npm run dev
 ```
+````
 
 ## Scripts
 
-| Command | Purpose |
-|---|---|
-| `npm run dev` | Local dev server |
-| `npm run build` | Production build |
-| `npm test` | Unit tests (Vitest) |
+| Command            | Purpose                |
+| ------------------ | ---------------------- |
+| `npm run dev`      | Local dev server       |
+| `npm run build`    | Production build       |
+| `npm test`         | Unit tests (Vitest)    |
 | `npm run test:e2e` | E2E tests (Playwright) |
-| `npm run lint` | ESLint |
-| `npm run format` | Prettier |
+| `npm run lint`     | ESLint                 |
+| `npm run format`   | Prettier               |
 
 ## Environment Variables
 
-| Name | Purpose |
-|---|---|
-| `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini API key (server only) |
-| `NEXT_PUBLIC_BACKEND` | `local` for localStorage (default), `supabase` for future Supabase swap |
+| Name                           | Purpose                                                                 |
+| ------------------------------ | ----------------------------------------------------------------------- |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini API key (server only)                                            |
+| `NEXT_PUBLIC_BACKEND`          | `local` for localStorage (default), `supabase` for future Supabase swap |
 
 ## Screenshots
 
 [Insert 3 PNGs in `/docs/screenshots/`:
+
 - 01-board-light.png — project board in light mode
 - 02-board-dark.png — same in dark mode
 - 03-magic-generate.png — AI dialog with results]
@@ -1008,6 +1025,7 @@ npm run dev
 ## AI Workflow
 
 See [AI_WORKFLOW.md](./AI_WORKFLOW.md) for the required documentation of Cursor + Claude usage during this build.
+
 ```
 
 **Step 34.1.** Take screenshots and save to `docs/screenshots/`.
@@ -1015,8 +1033,10 @@ See [AI_WORKFLOW.md](./AI_WORKFLOW.md) for the required documentation of Cursor 
 **Step 34.2.** Create `.env.example`:
 
 ```
+
 GOOGLE_GENERATIVE_AI_API_KEY=
 NEXT_PUBLIC_BACKEND=local
+
 ```
 
 **Step 34.3.** Commit: `docs: add readme, env example, and screenshots`.
@@ -1068,9 +1088,11 @@ Paste these into Cursor's Composer (`Cmd+I`). They're written to produce code th
 ### §14.1 Tailwind v4 design tokens
 
 ```
+
 Set up Tailwind v4 design tokens in src/app/globals.css for "The Intelligent Task Orchestrator," a Linear-inspired Kanban app. Read docs/plans/2026-05-31-intelligent-task-orchestrator-design.md §6.1 for the aesthetic.
 
 Requirements:
+
 - Use Tailwind v4 @theme block with CSS variables
 - Light mode (:root) and dark mode (.dark) both define every token
 - Background hierarchy: white → zinc-50 → zinc-100 (light), zinc-950 → zinc-900 → zinc-800 (dark)
@@ -1084,14 +1106,17 @@ Requirements:
 - DO NOT add arbitrary values; stick to Tailwind defaults
 
 Generate only globals.css. Do not touch other files.
+
 ```
 
 ### §14.2 Repository localStorage implementation
 
 ```
+
 Implement LocalStorageProjectRepository and LocalStorageTaskRepository in src/lib/repositories/local-storage.ts, conforming to the interfaces in src/lib/repositories/types.ts.
 
 Critical requirements:
+
 1. EVERY method returns a Promise (use Promise.resolve), even though localStorage is synchronous — interface contract.
 2. Reads MUST use z.safeParse against the schemas in src/lib/schemas.ts. On parse failure: console.warn, return []/null. Never throw to caller.
 3. Writes serialize the full collection per entity (one setItem per write).
@@ -1104,16 +1129,19 @@ Critical requirements:
 10. reorder accepts batch updates and applies them atomically.
 
 Generate only local-storage.ts. Do not modify schemas, types, or constants.
+
 ```
 
 ### §14.3 Repository tests
 
 ```
+
 Write Vitest unit tests for LocalStorageProjectRepository and LocalStorageTaskRepository in src/lib/repositories/local-storage.test.ts.
 
 Use the existing src/test/setup.ts which clears localStorage before each test.
 
 Required coverage:
+
 - Project CRUD: create + list, get returns null for missing, update merges, delete removes
 - Task CRUD: create assigns order at column tail, listByProject filters, update merges, reorder applies batch
 - Cascade: deleting a project deletes its tasks; deleting a task with children deletes the subtree
@@ -1123,20 +1151,24 @@ Required coverage:
 Use describe/it blocks. Each test must be independent. No mocks needed (real localStorage in jsdom).
 
 Generate only the test file.
+
 ```
 
 ### §14.4 TanStack Query hooks
 
 ```
+
 Generate src/hooks/use-projects.ts and src/hooks/use-tasks.ts using TanStack Query v5.
 
 Read src/lib/repositories/index.ts for the repo instances and src/lib/types.ts for the input types.
 
 Required hooks:
+
 - use-projects.ts: useProjects, useProject(id), useCreateProject, useUpdateProject, useDeleteProject
 - use-tasks.ts: useTasks(projectId), useCreateTask, useCreateTasksBulk, useUpdateTask, useReorderTasks, useDeleteTask
 
 Required patterns:
+
 1. Stable query keys: ['projects'], ['projects', id], ['tasks', 'project', projectId]
 2. All mutations use onMutate to optimistically update the cache, onError to rollback to the snapshot, onSettled to invalidate.
 3. useUpdateTask: optimistic update applies the patch immediately to the cached task.
@@ -1145,16 +1177,19 @@ Required patterns:
 6. Cancellation: each onMutate first calls queryClient.cancelQueries on the affected key.
 
 Type everything strictly. No 'any'. Generate both files.
+
 ```
 
 ### §14.5 ProjectCard + ProjectList
 
 ```
+
 Generate src/components/projects/project-card.tsx and src/components/projects/project-list.tsx.
 
 Read docs/plans/2026-05-31-intelligent-task-orchestrator-design.md §6.3 for design intent.
 
 ProjectCard:
+
 - Props: project: Project, taskCount: number
 - Card with border (no shadow), rounded-md, p-5
 - Title (text-base font-medium, truncate)
@@ -1166,6 +1201,7 @@ ProjectCard:
 - Stop propagation on dropdown clicks
 
 ProjectList:
+
 - Client component
 - Uses useProjects() and useTasks() to build the taskCount map (or just listByProject per project — keep it simple)
 - Loading: shadcn Skeleton (6 placeholder cards)
@@ -1174,20 +1210,24 @@ ProjectList:
 - Loaded: grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4
 
 Use shadcn primitives. Type everything. Generate both files.
+
 ```
 
 ### §14.6 ProjectDialog with RHF + Zod
 
 ```
+
 Generate src/components/projects/project-dialog.tsx — a controlled shadcn Dialog for creating and editing projects using React Hook Form + Zod.
 
 Props:
+
 - open: boolean
 - onOpenChange: (open: boolean) => void
 - mode: 'create' | 'edit'
 - initialData?: Project (required when mode === 'edit')
 
 Implementation:
+
 - Define ProjectFormSchema = z.object({ title: z.string().min(1, 'Title is required').max(120), description: z.string().max(500).optional() })
 - useForm with zodResolver(ProjectFormSchema), defaultValues from initialData
 - useEffect to reset form when initialData changes (for switching between projects)
@@ -1199,11 +1239,13 @@ Implementation:
 - Save button shows "Saving..." with disabled state during mutation
 
 Use shadcn Dialog, Form, Input, Textarea, Button, Label. Type everything. Generate only this file.
+
 ```
 
 ### §14.7 dnd-kit Kanban board (THE BIG ONE)
 
 ```
+
 Implement the drag-and-drop Kanban board in src/components/kanban/board.tsx using @dnd-kit/core and @dnd-kit/sortable.
 
 Read src/components/kanban/column.tsx and src/components/kanban/task-card.tsx for the current static implementation. Refactor TaskCard to use useSortable.
@@ -1219,7 +1261,7 @@ Requirements:
 
 2. Each column has unique droppable id: "column-todo", "column-in_progress", "column-done"
    - SortableContext wraps each column's task list with verticalListSortingStrategy and items=task ids
-   - Column itself uses useDroppable with the column-* id
+   - Column itself uses useDroppable with the column-\* id
 
 3. TaskCard refactor:
    - useSortable({ id: task.id })
@@ -1245,14 +1287,17 @@ Requirements:
 Type strictly. Use TypeScript discriminated unions where helpful. Generate only board.tsx; modify column.tsx and task-card.tsx as needed and show me the diffs.
 
 IMPORTANT: this is the most error-prone code in the project. Generate carefully and explain any non-obvious choices.
+
 ```
 
 ### §14.8 AI route handler
 
 ```
+
 Implement the /api/ai/generate-tasks route handler in src/app/api/ai/generate-tasks/route.ts using Vercel AI SDK and Gemini 2.5 Flash.
 
 Read:
+
 - src/lib/ai/prompt.ts for SYSTEM_PROMPT and buildUserPrompt
 - src/lib/ai/schema.ts for RequestSchema and AIResponseSchema
 
@@ -1271,27 +1316,32 @@ Requirements:
 7. Never expose raw error messages or stack traces in the response
 
 Light-touch rate limiting:
+
 - Module-level Map<string, { count: number, resetAt: number }> keyed by IP (from request.headers.get('x-forwarded-for'))
 - 10 requests per minute per IP
 - On exceeded: return 429 with { error: 'Too many requests. Try again in a moment.' }
 - Document this is demo-grade and not production-safe
 
 Use:
+
 - export const runtime = 'nodejs'
 - export const dynamic = 'force-dynamic'
 
 Type strictly. Generate only route.ts.
+
 ```
 
 ### §14.9 AI route handler tests
 
 ```
+
 Write Vitest tests for src/app/api/ai/generate-tasks/route.ts in src/app/api/ai/generate-tasks/route.test.ts.
 
 Mock the 'ai' package: vi.mock('ai', () => ({ generateObject: vi.fn() }))
 Mock the '@ai-sdk/google' package similarly.
 
 Coverage:
+
 1. Valid request → 200 with parsed body containing 5 tasks
 2. Missing projectTitle → 400 with error
 3. Empty string projectTitle → 400 with error
@@ -1301,16 +1351,19 @@ Coverage:
 Use the NextRequest Web API standard (e.g., new Request(url, { method: 'POST', headers: {...}, body: JSON.stringify({...}) })).
 
 Reset mocks between tests. Generate only the test file.
+
 ```
 
 ### §14.10 Playwright happy-path E2E
 
 ```
+
 Write a Playwright E2E test in tests/e2e/happy-path.spec.ts.
 
 Goal: validate the full user journey end-to-end.
 
 Test steps:
+
 1. Visit /
 2. Click "+ New Project"
 3. Fill title with "E2E Test Project {Date.now()}" (uniqueness avoids test pollution)
@@ -1334,11 +1387,13 @@ Test steps:
 21. Verify the project is gone
 
 Constraints:
+
 - Add data-testid attributes to the components as needed (request these explicitly in the generated test, then you'll add them to the components)
 - Use Playwright's expect with toBeVisible / toHaveCount
 - Comments noting that this test calls the real Gemini API (5-15s) and is not CI-safe without API key + budget
 
 Generate only the spec file. List which data-testid attributes need to be added to which components.
+
 ```
 
 ---
@@ -1367,3 +1422,4 @@ Generate only the spec file. List which data-testid attributes need to be added 
 ---
 
 End of plan.
+```

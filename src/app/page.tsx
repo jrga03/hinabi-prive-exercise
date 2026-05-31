@@ -1,5 +1,5 @@
-import { AppHeader } from "@/components/layout/app-header"
-import { ProjectList } from "@/components/projects/project-list"
+import { AppHeader } from "@/components/layout/app-header";
+import { ProjectList } from "@/components/projects/project-list";
 
 export default function Home() {
   return (
@@ -9,5 +9,5 @@ export default function Home() {
         <ProjectList />
       </main>
     </>
-  )
+  );
 }

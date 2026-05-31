@@ -1,37 +1,32 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { MoreVertical, Pencil, Trash2 } from "lucide-react"
+import Link from "next/link";
+import { MoreVertical, Pencil, Trash2 } from "lucide-react";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { formatRelative } from "@/lib/format"
-import type { Project } from "@/lib/types"
+} from "@/components/ui/dropdown-menu";
+import { formatRelative } from "@/lib/format";
+import type { Project } from "@/lib/types";
 
 interface ProjectCardProps {
-  project: Project
-  taskCount: number
-  onEdit: (project: Project) => void
-  onDelete: (project: Project) => void
+  project: Project;
+  taskCount: number;
+  onEdit: (project: Project) => void;
+  onDelete: (project: Project) => void;
 }
 
 function stopMouse(event: React.MouseEvent | React.PointerEvent) {
-  event.stopPropagation()
+  event.stopPropagation();
 }
 
-export function ProjectCard({
-  project,
-  taskCount,
-  onEdit,
-  onDelete,
-}: ProjectCardProps) {
+export function ProjectCard({ project, taskCount, onEdit, onDelete }: ProjectCardProps) {
   return (
-    <article className="group/project relative isolate rounded-xl bg-card text-card-foreground ring-1 ring-foreground/10 transition-colors hover:bg-muted/40 focus-within:ring-ring/50 focus-within:ring-2">
+    <article className="group/project bg-card text-card-foreground ring-foreground/10 hover:bg-muted/40 focus-within:ring-ring/50 relative isolate rounded-xl ring-1 transition-colors focus-within:ring-2">
       <Link
         href={`/projects/${project.id}`}
         className="block rounded-xl p-5 outline-none"
@@ -39,28 +34,21 @@ export function ProjectCard({
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1 space-y-1.5">
-            <h3 className="truncate font-heading text-base font-medium leading-snug">
+            <h3 className="font-heading truncate text-base leading-snug font-medium">
               {project.title}
             </h3>
             {project.description ? (
-              <p className="line-clamp-2 text-sm text-muted-foreground">
-                {project.description}
-              </p>
+              <p className="text-muted-foreground line-clamp-2 text-sm">{project.description}</p>
             ) : (
-              <p className="text-sm text-muted-foreground/70 italic">
-                No description
-              </p>
+              <p className="text-muted-foreground/70 text-sm italic">No description</p>
             )}
           </div>
           {/* Spacer so the absolute-positioned menu doesn't overlap text */}
           <div className="size-7 shrink-0" aria-hidden />
         </div>
-        <div className="mt-5 flex items-center justify-between text-xs text-muted-foreground">
+        <div className="text-muted-foreground mt-5 flex items-center justify-between text-xs">
           <span className="inline-flex items-center gap-1.5">
-            <span
-              aria-hidden
-              className="inline-block size-1.5 rounded-full bg-primary"
-            />
+            <span aria-hidden className="bg-primary inline-block size-1.5 rounded-full" />
             {taskCount} {taskCount === 1 ? "task" : "tasks"}
           </span>
           <span>{formatRelative(project.updatedAt)}</span>
@@ -83,8 +71,8 @@ export function ProjectCard({
           <DropdownMenuContent align="end" sideOffset={6}>
             <DropdownMenuItem
               onClick={(event) => {
-                event.stopPropagation()
-                onEdit(project)
+                event.stopPropagation();
+                onEdit(project);
               }}
             >
               <Pencil />
@@ -93,8 +81,8 @@ export function ProjectCard({
             <DropdownMenuItem
               variant="destructive"
               onClick={(event) => {
-                event.stopPropagation()
-                onDelete(project)
+                event.stopPropagation();
+                onDelete(project);
               }}
             >
               <Trash2 />
@@ -104,5 +92,5 @@ export function ProjectCard({
         </DropdownMenu>
       </div>
     </article>
-  )
+  );
 }
