@@ -50,14 +50,17 @@ The only persistent storage is the browser's `localStorage` — there is no data
 
 **Optimistic drag-and-drop.** `src/components/kanban/board.tsx` wraps the three columns in a `DndContext` with separate mouse/touch/keyboard sensors (the touch sensor uses a longer activation delay so scrolling on mobile doesn't pick up a card). On drag end, the board takes a snapshot of the pre-drag cache, computes the new order with `arrayMove` over the full column (the active item included on both sides of the index lookup — see `notes/ai-bug.md` for why that detail matters), writes the new order into the query cache immediately, then fires the `reorder` mutation. Errors roll back to the snapshot and surface a toast.
 
-**AI generation pipeline.** The "Magic Generate" dialog posts to `POST /api/ai/generate-tasks` with `{ projectTitle, projectDescription?, context? }`. The route handler Zod-validates the request (`RequestSchema`), calls `generateObject({ model: google('gemini-2.5-flash'), schema: AIResponseSchema, … })` so the output is guaranteed to match an array of exactly 5 categorized tasks, and the client bulk-inserts via `taskRepo.createMany`. A demo-grade in-memory rate limiter (10 req / minute, process-local) sits in front; for real traffic, swap it for Upstash + a real key.
+**AI generation pipeline.** The "Magic Generate" dialog posts to `POST /api/ai/generate-tasks` with `{ projectTitle, projectDescription?, context? }`. The route handler Zod-validates the request (`RequestSchema`), then calls `streamObject({ model: google('gemini-2.5-flash'), schema: AIResponseSchema, … })` and returns `result.toTextStreamResponse()`. The dialog renders partial tasks (title → category → next row) as they arrive; the final accumulated JSON is still constrained to exactly 5 categorized tasks, and on stream close the client bulk-inserts via `taskRepo.createMany`. A demo-grade in-memory rate limiter (10 req / minute, process-local) sits in front; for real traffic, swap it for Upstash + a real key.
 
 For the full design rationale, see [`docs/plans/2026-05-31-intelligent-task-orchestrator-design.md`](docs/plans/2026-05-31-intelligent-task-orchestrator-design.md). For the task-by-task build order, see [`docs/plans/2026-05-31-intelligent-task-orchestrator-implementation.md`](docs/plans/2026-05-31-intelligent-task-orchestrator-implementation.md).
 
 ## Testing
 
-- **Unit tests (Vitest, 25 passing).** `src/lib/repositories/local-storage.test.ts` covers create / get / update / delete, validates that schema-failing inputs reject, that delete cascades to subtasks, and that corrupted localStorage degrades gracefully. `src/app/api/ai/generate-tasks/route.test.ts` covers request validation, the rate limiter, and the `NoObjectGeneratedError` branch. Run with `npm test`.
-- **End-to-end (Playwright, 1 passing).** `tests/e2e/happy-path.spec.ts` drives the full user flow against a stubbed AI route: create project → Magic Generate → drag → edit (with auto-save assertion) → add sub-task → delete project. The stub mirrors `AIResponseSchema` exactly, so the spec is deterministic and doesn't burn the Gemini quota in CI. Real Gemini is only hit when manually testing the live deploy. Run with `npm run test:e2e` — ~7 s on a warm dev server.
+- **Unit tests (Vitest, 23 passing).** `src/lib/repositories/local-storage.test.ts` covers create / get / update / delete, validates that schema-failing inputs reject, that delete cascades to subtasks, and that corrupted localStorage degrades gracefully. `src/app/api/ai/generate-tasks/route.test.ts` covers request validation, the rate limiter, and the streaming-response shape (chunked JSON reassembles into the schema). Run with `npm test`.
+- **End-to-end (Playwright, 3 specs).** Run with `npm run test:e2e` against the dev server — the AI route is stubbed so CI doesn't burn the Gemini quota.
+  - `tests/e2e/happy-path.spec.ts` — full flow: create project → Magic Generate → drag → edit (with auto-save assertion) → add sub-task → delete project. The stub mirrors `AIResponseSchema` exactly.
+  - `tests/e2e/drag-drop.spec.ts` — cross-column and intra-column reorder, including the lower-half drop-position regression from `notes/ai-bug.md`.
+  - `tests/e2e/task-edit.spec.ts` — task detail panel: debounced auto-save indicator, select-label rendering, debounce-cancel on close.
 
 ## Accessibility
 
@@ -76,11 +79,26 @@ For the full design rationale, see [`docs/plans/2026-05-31-intelligent-task-orch
 
 ## Deploy
 
-Push to GitHub, import the repo on Vercel, set `GOOGLE_GENERATIVE_AI_API_KEY` in the project's environment variables, and deploy. The full deploy checklist (with manual smoke steps to run against the live URL) is in the response that ended the build, not in this README — but in short:
+The live demo runs on Vercel at [hinabi-prive-exercise.vercel.app](https://hinabi-prive-exercise.vercel.app/). To deploy a fresh copy:
 
-1. Set `GOOGLE_GENERATIVE_AI_API_KEY` on the Vercel project (without it, Magic Generate returns a 500).
-2. After deploy, run the happy path manually on desktop + mobile (Vercel's QR code helps).
-3. Look for hydration mismatches and missing env-var errors in the deploy logs.
+**1. Push to GitHub.** Vercel imports straight from the repo — no build config needed; the defaults (`next build`, Node 20+, `.next` output) Just Work.
+
+**2. Set the environment variable.** In _Project Settings → Environment Variables_, add `GOOGLE_GENERATIVE_AI_API_KEY` for the **Production** environment (a free key from [aistudio.google.com](https://aistudio.google.com) is enough for the demo). Without it, the page still loads and CRUD works — only Magic Generate returns a 500.
+
+**3. Trigger the deploy.** Either click _Deploy_ in the import flow or push to `main` once the project is connected. The first build takes ~60 s.
+
+**4. Smoke the live URL.** Run this checklist against the deployed origin before sharing:
+
+- [ ] Home page loads — no hydration warnings in the deploy logs (_Deployments → … → Build Logs / Runtime Logs_).
+- [ ] Create a project, open it.
+- [ ] Click _Magic Generate_, type a context line, hit generate — 5 categorized tasks stream in and land in **To Do**.
+- [ ] Drag a card cross-column and intra-column; refresh — order persists (it's localStorage, so per-browser).
+- [ ] Open a task, edit the title, watch the "Saved" indicator appear within ~600 ms.
+- [ ] Toggle light / dark theme — no flash, contrast looks right in both.
+- [ ] Open Vercel's mobile QR code, repeat the create / generate / drag flow on a phone — touch targets feel ≥ 44 px, drag activates only after the 250 ms long-press (scroll should not pick up a card).
+- [ ] Force a failure: temporarily unset `GOOGLE_GENERATIVE_AI_API_KEY` and hit Magic Generate — the dialog should show the inline error card with Retry / Skip, not crash the page. Restore the var after.
+
+**5. Watch the runtime logs.** `vercel logs` or the Runtime Logs tab in the dashboard surfaces any `[ai/generate-tasks] stream error` lines from the route's `onError` handler — useful when Gemini rate-limits or the schema fails to satisfy.
 
 ## Further reading
 
