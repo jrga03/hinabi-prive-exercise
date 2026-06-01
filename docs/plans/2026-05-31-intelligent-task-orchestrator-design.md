@@ -403,10 +403,10 @@ Two days, ~17 active hours each. Each phase has a Definition of Done; don't move
 Conventional commits, frequent and descriptive. Format for tool-attributed work:
 
 ```
-<type>(<scope>): <subject> via <tool>
+<type>(<scope>): <subject>
 ```
 
-Example: `feat(kanban): implement drag-and-drop via Cursor composer`
+Example: `feat(kanban): implement drag-and-drop with dnd-kit`
 
 Keep a running `notes/ai-bug.md` from hour 0. The moment Claude produces buggy code, capture: prompt, output, the bug, the fix. The AI_WORKFLOW.md requires a real example — don't reconstruct it at hour 33.
 

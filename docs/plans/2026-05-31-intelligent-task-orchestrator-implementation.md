@@ -1,11 +1,11 @@
 # The Intelligent Task Orchestrator — Implementation Plan
 
-> **For the engineer (you):** Execute this plan in Cursor's Composer + Chat with Claude as the model. Many tasks include a ready-to-paste prompt. Always read the generated code before accepting — the assessment specifically asks you to document a bug Claude introduced and how you fixed it.
+> **For the engineer (you):** Execute this plan in Claude Code (terminal CLI, Opus 4.7). Many tasks include a ready-to-paste prompt. Always read the generated code before accepting — the assessment specifically asks you to document a bug Claude introduced and how you fixed it.
 >
 > **Companion documents:**
 >
 > - Design doc: `docs/plans/2026-05-31-intelligent-task-orchestrator-design.md`
-> - Cursor prompt library: section 14 of this file
+> - Prompt library: section 14 of this file
 
 **Goal:** Build "The Intelligent Task Orchestrator," a Kanban-style project/task manager with AI-assisted sub-task generation, in ~32-36 active hours over a 48-hour window.
 
@@ -24,7 +24,7 @@ These are 10-minute setup items. Do them the day before so Hour 0 is pure coding
 - [ ] **Google AI Studio API key:** `aistudio.google.com` → create API key. Save as `GOOGLE_GENERATIVE_AI_API_KEY` (note: this exact name is what the SDK's `google()` provider reads by default).
 - [ ] **Vercel account:** sign in with GitHub. Confirm the GitHub repo creation flow works for you.
 - [ ] **GitHub repo:** decide on the repo name (suggest `intelligent-task-orchestrator` or `tio-hinabi`). Don't create it yet — `create-next-app` will do that via `--use-npm` flow, or you'll do `gh repo create` after the scaffold.
-- [ ] **Cursor configured:** sign in, model = Claude (Sonnet 4.6 or Opus 4.7 for trickier tasks). Compose mode keyboard shortcut handy.
+- [ ] **Claude Code configured:** terminal CLI installed, model = Opus 4.7 (1M context for the longer threads).
 - [ ] **Notes file ready:** create a local `notes/ai-bug.md` in a separate text editor. Use it for AI bug/fix capture during the build.
 - [ ] **Mobile device for testing:** have a phone ready to test the Vercel preview URL via QR code.
 
@@ -535,7 +535,7 @@ Take a 30-minute break here. Hydrate. Re-read what you've built.
 
 **Step 14.2.** Add a sub-task indicator that hides during drag (clutter reduction).
 
-**Step 14.3.** Commit: `feat(kanban): implement drag-and-drop with dnd-kit via Cursor composer`.
+**Step 14.3.** Commit: `feat(kanban): implement drag-and-drop with dnd-kit`.
 
 **DoD:** Drag a task across columns — it visually moves immediately, persists after reload. Drag within a column reorders it. Keyboard (Tab to task, Space to pick up, arrow keys, Space to drop) works.
 
@@ -899,13 +899,12 @@ Required content per the brief:
 
 ## Tools Used
 
-- **Cursor** (Composer + Chat) as the IDE-integrated AI surface for code generation and refactoring.
-- **Claude** (Sonnet 4.6 / Opus 4.7) as the model behind Cursor's agentic work for complex multi-file tasks.
-- **Claude Code** (terminal CLI) for the brainstorming and planning phase — produced this AI_WORKFLOW.md, the design doc, and the implementation plan.
+- **Claude Code** (terminal CLI, Opus 4.7) as the single agentic surface for the build — brainstorming, design doc, implementation plan, every code-gen prompt, debugging.
+- **`shadcn@canary` CLI** as an AI-adjacent codegen tool for Base UI primitives.
 
 ## Initial scaffolding prompt
 
-[Paste the EXACT prompt you used in Cursor Composer to scaffold the project. Should reference the design doc location and key constraints.]
+[Paste the EXACT prompt you used in Claude Code to scaffold the project. Should reference the design doc location and key constraints.]
 
 ## A specific instance of buggy AI code + the fix
 
@@ -937,8 +936,8 @@ Required content per the brief:
 
 ## Workflow notes
 
-- Brainstorming and planning happened in Claude Code (terminal), producing the design doc and this implementation plan. Cursor then implemented against the plan.
-- For multi-file refactors (e.g., repository pattern), Composer was preferred. For single-file tweaks (e.g., a specific Tailwind class adjustment), Chat was faster.
+- A single Claude Code thread held the whole build — design doc, implementation plan, every code-gen prompt, the test/lint loop, bug triage. Keeping context in one place meant the model had full history when revisiting a file.
+- For multi-file refactors (e.g., repository pattern), a single multi-step prompt produced the whole change set in one go. For single-file tweaks (e.g., a specific Tailwind class adjustment), a targeted follow-up prompt was faster.
 - I always read generated code before accepting, particularly dnd-kit logic and Zod schemas — these are areas where models tend to confabulate.
 ```
 
@@ -1024,7 +1023,7 @@ npm run dev
 
 ## AI Workflow
 
-See [AI_WORKFLOW.md](./AI_WORKFLOW.md) for the required documentation of Cursor + Claude usage during this build.
+See [AI_WORKFLOW.md](./AI_WORKFLOW.md) for the required documentation of Claude usage during this build.
 
 ```
 
@@ -1047,7 +1046,7 @@ NEXT_PUBLIC_BACKEND=local
 
 ### Task 35: Final commit pass + submit (~45 min)
 
-**Step 35.1.** `git log --oneline` — review every commit message. Each should be conventional, descriptive, and ideally end with `via Cursor composer` or `via Cursor chat` where tool-attributed.
+**Step 35.1.** `git log --oneline` — review every commit message. Each should be conventional and descriptive.
 
 **Step 35.2.** Verify deploy is fresh and live URL works.
 
@@ -1081,9 +1080,9 @@ Triggered automatically if you finish Day 1 < Hour 15 with the AI feature not ye
 
 ---
 
-## 14. Cursor Prompt Library
+## 14. Prompt Library
 
-Paste these into Cursor's Composer (`Cmd+I`). They're written to produce code that fits this plan. Always read the output before accepting.
+Paste these into Claude Code (or any agentic surface that can read the repo). They're written to produce code that fits this plan. Always read the output before accepting.
 
 ### §14.1 Tailwind v4 design tokens
 
@@ -1407,7 +1406,6 @@ Generate only the spec file. List which data-testid attributes need to be added 
 - [ ] `docs/plans/2026-05-31-intelligent-task-orchestrator-design.md` (design doc) committed
 - [ ] `docs/plans/2026-05-31-intelligent-task-orchestrator-implementation.md` (this plan) committed
 - [ ] Conventional commits in `git log` — at least 20 distinct, descriptive commits
-- [ ] At least 2 commits attributed to Cursor (`via Cursor composer` or `via Cursor chat`)
 - [ ] `npm test` passes (Vitest)
 - [ ] `npm run test:e2e` passes (Playwright)
 - [ ] `npm run lint` passes

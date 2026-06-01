@@ -7,8 +7,8 @@ Format per entry:
 ```
 ## Date - Short title
 
-**Tool:** (Cursor Composer / Cursor Chat / Claude Code / Claude.ai)
-**Model:** (Sonnet 4.6 / Opus 4.7 / etc.)
+**Tool:** (Claude Code / Claude.ai)
+**Model:** (Opus 4.7 / Sonnet 4.6 / etc.)
 **Task:** what I was trying to do
 **Prompt:** (verbatim)
 **Generated output:** (snippet of the wrong code)
@@ -187,8 +187,8 @@ className =
 
 ## 2026-05-31 - Task detail panel auto-save silently dead because `formState.isValid` was unreliable
 
-**Tool:** Cursor (Composer) — original implementation
-**Model:** Claude Sonnet 4.6
+**Tool:** Claude Code (terminal CLI) — original implementation
+**Model:** Opus 4.7
 **Task:** Detail panel auto-save with debounced `form.watch` subscriber.
 **Prompt:** Internal — "debounce 500 ms, then if the form is valid persist a diff patch via the update mutation."
 **Generated output:**
@@ -232,8 +232,8 @@ debounceRef.current = setTimeout(() => {
 
 ## 2026-06-01 - shadcn `<SelectValue />` rendered the raw value on @base-ui/react
 
-**Tool:** Cursor (Composer)
-**Model:** Claude Sonnet 4.6
+**Tool:** Claude Code (terminal CLI)
+**Model:** Opus 4.7
 **Task:** Status + Category Select in the task detail panel.
 **Prompt:** Internal — Task 16, "render the selected item's label in the trigger." Borrowed the canonical shadcn pattern wholesale (`<SelectTrigger><SelectValue /></SelectTrigger>`).
 **Generated output:**
@@ -283,8 +283,8 @@ debounceRef.current = setTimeout(() => {
 
 ## 2026-06-01 - Debounced auto-save cancelled on panel close — typing then escaping lost the edit
 
-**Tool:** Cursor (Composer)
-**Model:** Claude Sonnet 4.6
+**Tool:** Claude Code (terminal CLI)
+**Model:** Opus 4.7
 **Task:** Task detail panel's auto-save: debounce 500 ms after each keystroke, then persist via the update mutation.
 **Prompt:** Internal — Task 16, "On unmount clean up the debounce timer." (Reasonable on its face.)
 **Generated output:**
@@ -344,8 +344,8 @@ useEffect(
 
 ## 2026-06-01 - dnd-kit closestCorners let the column drop zone win, "drop at position 2 lands at position 1"
 
-**Tool:** Cursor (Composer)
-**Model:** Claude Sonnet 4.6
+**Tool:** Claude Code (terminal CLI)
+**Model:** Opus 4.7
 **Task:** Custom collision detection wasn't on the original spec — the plan said use `closestCorners` and call it a day. The bug only surfaced once a user dragged with imprecise targeting (i.e. dropping in the 12 px gap between cards, not directly onto a card).
 **Prompt:** Internal — Task 14 / §14.7, "`<DndContext collisionDetection={closestCorners}>`."
 **Generated output:** Just `collisionDetection={closestCorners}` and a `handleDragEnd` that read `over.id` directly (`arrayMove(col, oldIndex, col.findIndex(t => t.id === overIdStr))`).
